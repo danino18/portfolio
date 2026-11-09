@@ -52,7 +52,8 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
     };
 
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000) * speed;
+      // rAF timestamps can precede performance.now() taken when the loop restarted: never step backwards.
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)) * speed;
       last = now;
       step(dt);
       if (visible && !document.hidden) raf = requestAnimationFrame(loop);

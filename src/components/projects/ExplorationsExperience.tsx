@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useAnimatedCanvas } from "@/lib/useAnimatedCanvas";
 import { mulberry32, clamp, lerp } from "@/lib/rng";
 import { sfx } from "@/lib/sfx";
+import WifiSensing from "./WifiSensing";
 
 const MAG = "#ff6bd6";
 const ICE = "#7fe8ff";
@@ -216,154 +217,6 @@ function Cloth() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 2. Wi-Fi channel-state sensing: simulated CSI spectrogram                   */
-/* -------------------------------------------------------------------------- */
-function CsiLab() {
-  const SUB = 52;
-  const person = useRef({ x: 0.5, y: 0.75, vx: 0, vy: 0, active: false, px: 0.5, py: 0.75 });
-  const history = useRef<Float32Array[]>([]);
-  const score = useRef(0);
-  const rng = useRef(mulberry32(31));
-
-  const { ref, redraw } = useAnimatedCanvas((c, w, h, t, dt) => {
-    const room = { x: 14, y: 36, w: Math.min(w * 0.4, 360), h: h - 72 };
-    const spec = { x: room.x + room.w + 28, y: 36, w: w - (room.x + room.w + 28) - 14, h: h - 72 };
-    const tx = { x: room.x + 18, y: room.y + room.h * 0.35 };
-    const rx = { x: room.x + room.w - 18, y: room.y + room.h * 0.35 };
-    const p = person.current;
-
-    // person motion (cursor); decays to rest
-    const mx = room.x + p.x * room.w;
-    const my = room.y + p.y * room.h;
-    const speed = Math.hypot(p.vx, p.vy);
-    p.vx *= 0.9;
-    p.vy *= 0.9;
-
-    // distance of person to the TX-RX line of sight
-    const lx = rx.x - tx.x;
-    const ly = rx.y - tx.y;
-    const tproj = clamp(((mx - tx.x) * lx + (my - tx.y) * ly) / (lx * lx + ly * ly));
-    const dx = tx.x + lx * tproj - mx;
-    const dy = tx.y + ly * tproj - my;
-    const dist = Math.hypot(dx, dy);
-    const influence = Math.exp(-(dist * dist) / (2 * 38 * 38));
-    const disturbance = influence * clamp(speed * 28, 0, 1);
-
-    // synthesise a CSI amplitude row
-    const row = new Float32Array(SUB);
-    for (let k = 0; k < SUB; k++) {
-      const base = 0.52 + 0.22 * Math.sin(k * 0.34 + 0.6) + 0.12 * Math.sin(k * 0.9);
-      const noise = (rng.current() - 0.5) * 0.05;
-      const move = disturbance * Math.sin(k * 0.55 + t * 9) * 0.38 * (0.6 + 0.4 * Math.sin(k * 0.21));
-      const slow = influence * 0.08 * Math.sin(k * 0.4 - t * 2);
-      row[k] = clamp(base + noise + move + slow, 0, 1);
-    }
-    history.current.push(row);
-    const cols = Math.floor(spec.w / 3);
-    if (history.current.length > cols) history.current.shift();
-
-    // motion score = variation between consecutive rows
-    const prev = history.current[history.current.length - 2];
-    if (prev) {
-      let d = 0;
-      for (let k = 0; k < SUB; k++) d += Math.abs(row[k] - prev[k]);
-      score.current = lerp(score.current, d / SUB, 0.2);
-    }
-    const detected = score.current > 0.035;
-
-    // ---- draw room
-    c.font = "10px var(--font-geist-mono), monospace";
-    c.fillStyle = "rgba(233,237,246,0.5)";
-    c.fillText("ROOM · top view (simulated)", room.x, room.y - 12);
-    c.strokeStyle = "rgba(255,255,255,0.16)";
-    c.strokeRect(room.x, room.y, room.w, room.h);
-    c.strokeStyle = "rgba(127,232,255,0.5)";
-    c.setLineDash([4, 5]);
-    c.beginPath();
-    c.moveTo(tx.x, tx.y);
-    c.lineTo(rx.x, rx.y);
-    c.stroke();
-    c.setLineDash([]);
-    // wave rings
-    for (let i = 0; i < 3; i++) {
-      const rr = ((t * 30 + i * 28) % 84) + 4;
-      c.strokeStyle = `rgba(127,232,255,${0.28 * (1 - rr / 88)})`;
-      c.beginPath();
-      c.arc(tx.x, tx.y, rr, -0.9, 0.9);
-      c.stroke();
-    }
-    for (const [pt, label] of [[tx, "ESP32 TX"], [rx, "ESP32 RX"]] as const) {
-      c.fillStyle = ICE;
-      c.fillRect(pt.x - 5, pt.y - 5, 10, 10);
-      c.fillStyle = "rgba(233,237,246,0.6)";
-      c.fillText(label, pt.x - 22, pt.y + 22);
-    }
-    // person
-    c.fillStyle = detected ? MAG : "rgba(233,237,246,0.8)";
-    c.beginPath();
-    c.arc(mx, my, 7, 0, Math.PI * 2);
-    c.fill();
-    if (detected) {
-      c.strokeStyle = MAG;
-      c.beginPath();
-      c.arc(mx, my, 14 + Math.sin(t * 10) * 2, 0, Math.PI * 2);
-      c.stroke();
-    }
-    if (!p.active) {
-      c.fillStyle = "rgba(233,237,246,0.55)";
-      c.fillText("Move your pointer in the room", room.x + 10, room.y + room.h - 10);
-    }
-
-    // ---- spectrogram
-    c.fillStyle = "rgba(233,237,246,0.5)";
-    c.fillText("CSI AMPLITUDE · 52 subcarriers × time (simulated)", spec.x, spec.y - 12);
-    const hist = history.current;
-    const cw = 3;
-    const ch = spec.h / SUB;
-    for (let i = 0; i < hist.length; i++) {
-      const col = hist[i];
-      const x = spec.x + spec.w - (hist.length - i) * cw;
-      for (let k = 0; k < SUB; k++) {
-        const v = col[k];
-        c.fillStyle = `hsla(${200 - v * 120}, 90%, ${18 + v * 50}%, ${0.25 + v * 0.75})`;
-        c.fillRect(x, spec.y + k * ch, cw, ch + 0.5);
-      }
-    }
-    c.strokeStyle = "rgba(255,255,255,0.14)";
-    c.strokeRect(spec.x, spec.y, spec.w, spec.h);
-
-    // score bar
-    const by = spec.y + spec.h + 14;
-    c.fillStyle = "rgba(255,255,255,0.08)";
-    c.fillRect(spec.x, by, spec.w, 6);
-    c.fillStyle = detected ? MAG : ICE;
-    c.fillRect(spec.x, by, spec.w * clamp(score.current / 0.12), 6);
-    c.fillStyle = "rgba(255,255,255,0.4)";
-    c.fillRect(spec.x + spec.w * (0.035 / 0.12), by - 3, 1, 12);
-    c.fillStyle = detected ? MAG : "rgba(233,237,246,0.6)";
-    c.fillText(detected ? "MOTION DETECTED (toy threshold)" : "no motion", spec.x, by + 22);
-    void dt;
-  });
-
-  const move = (e: React.PointerEvent) => {
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const roomW = Math.min(r.width * 0.4, 360);
-    const roomH = r.height - 72;
-    const nx = clamp((e.clientX - r.left - 14) / roomW);
-    const ny = clamp((e.clientY - r.top - 36) / roomH);
-    const p = person.current;
-    p.vx += (nx - p.x) * 0.9;
-    p.vy += (ny - p.y) * 0.9;
-    p.x = nx;
-    p.y = ny;
-    p.active = true;
-    redraw();
-  };
-
-  return <canvas ref={ref} className="h-full w-full touch-pan-y" data-cursor="Wave" onPointerMove={move} />;
-}
-
-/* -------------------------------------------------------------------------- */
 /* 3. Electronic nose: toy fingerprints on an 8-sensor array                   */
 /* -------------------------------------------------------------------------- */
 const ODORS = [
@@ -489,9 +342,16 @@ function ENose() {
 /* -------------------------------------------------------------------------- */
 
 const TABS = [
-  { id: "laundry", label: "Robotic laundry", sub: "Household robotics", Comp: Cloth },
-  { id: "csi", label: "Wi-Fi sensing", sub: "ESP32 channel state", Comp: CsiLab },
-  { id: "enose", label: "Electronic nose", sub: "Sensor arrays + AI", Comp: ENose },
+  {
+    id: "wifi",
+    label: "Wi-Fi Sensing",
+    sub: "Human detection · ESP32 + AI",
+    note: "Conceptual",
+    Comp: WifiSensing,
+    height: "h-auto lg:h-[clamp(36rem,calc(var(--svh)*82),50rem)]",
+  },
+  { id: "laundry", label: "Robotic laundry", sub: "Household robotics", note: "Toy simulation", Comp: Cloth, height: "h-[clamp(24rem,calc(var(--svh)*56),32rem)]" },
+  { id: "enose", label: "Electronic nose", sub: "Sensor arrays + AI", note: "Toy simulation", Comp: ENose, height: "h-[clamp(24rem,calc(var(--svh)*56),32rem)]" },
 ] as const;
 
 export default function ExplorationsExperience() {
@@ -499,7 +359,7 @@ export default function ExplorationsExperience() {
   const Active = TABS[tab].Comp;
   return (
     <div className="relative w-full">
-      <div role="tablist" aria-label="Explorations" className="flex flex-wrap gap-2 border-b border-line p-3 md:p-4">
+      <div role="tablist" aria-label="Future projects and explorations" className="no-scrollbar flex gap-2 overflow-x-auto border-b border-line p-3 md:p-4">
         {TABS.map((t, i) => (
           <button
             key={t.id}
@@ -516,15 +376,20 @@ export default function ExplorationsExperience() {
               if (e.key === "ArrowRight") setTab((tab + 1) % TABS.length);
               if (e.key === "ArrowLeft") setTab((tab + TABS.length - 1) % TABS.length);
             }}
-            className={`rounded-xl border px-4 py-2.5 text-left transition-colors ${tab === i ? "border-[#ff6bd6]/60 bg-[#ff6bd6]/10" : "border-line hover:border-white/30"}`}
+            className={`shrink-0 rounded-xl border px-4 py-2.5 text-left transition-colors ${tab === i ? "border-[#ff6bd6]/60 bg-[#ff6bd6]/10" : "border-line hover:border-white/30"}`}
           >
-            <span className="block font-display text-sm font-bold uppercase tracking-tight">{t.label}</span>
-            <span className="label !text-[0.58rem]">{t.sub}</span>
+            <span className="flex items-center gap-2">
+              <span className="label !text-[0.55rem] !text-[#ff9be6]">0{i + 1}</span>
+              <span className="block font-display text-sm font-bold uppercase tracking-tight">{t.label}</span>
+            </span>
+            <span className="label block !text-[0.58rem]">
+              {t.sub} · {t.note}
+            </span>
           </button>
         ))}
-        <span className="chip ms-auto self-center !border-[#ff6bd6]/50 !text-[#ff9be6]">Exploratory · toy simulation</span>
+        <span className="chip ms-auto hidden shrink-0 self-center !border-[#ff6bd6]/50 !text-[#ff9be6] xl:inline-flex">Future & experimental work</span>
       </div>
-      <div id={`panel-${TABS[tab].id}`} role="tabpanel" aria-labelledby={`tab-${TABS[tab].id}`} className="relative h-[clamp(380px,56vh,520px)] w-full">
+      <div id={`panel-${TABS[tab].id}`} role="tabpanel" aria-labelledby={`tab-${TABS[tab].id}`} className={`relative w-full ${TABS[tab].height}`}>
         <Active key={TABS[tab].id} />
       </div>
     </div>

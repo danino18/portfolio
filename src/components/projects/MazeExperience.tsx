@@ -25,7 +25,7 @@ function FlatScreen({ game, drive }: { game: CoralGame; drive: boolean }) {
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
     if (host.current) io.observe(host.current);
     const loop = (t: number) => {
-      const dt = Math.min(0.1, (t - last) / 1000);
+      const dt = Math.max(0, Math.min(0.1, (t - last) / 1000));
       last = t;
       if (drive && visible && !document.hidden) {
         game.update(dt);
@@ -242,7 +242,7 @@ export default function MazeExperience() {
       </div>
 
       {!focused && pilot === "AUTO" && (
-        <div className="pointer-events-none absolute inset-x-0 top-[34%] z-10 hidden justify-center [@media(pointer:fine)]:flex">
+        <div className="pointer-events-none absolute inset-x-0 top-16 z-10 hidden justify-center [@media(pointer:fine)]:flex">
           <span className="label rounded-full border border-white/20 bg-bg/85 px-4 py-2 !text-ink backdrop-blur">Click, then hold ↑ / ↓ to steer the coral</span>
         </div>
       )}
