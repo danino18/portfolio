@@ -8,4 +8,5 @@ Next.js 16 App Router + TypeScript + Tailwind 4 + React Three Fiber + GSAP/Scrol
 - The `physical-ai-robot-arm` repo (danino18/physAI-arm-ex) is workshop code (UR5e + RG6 + RealSense, ROS 2, SAM 3, MoveIt, Gazebo); don't attribute components to Eyal individually without his say-so.
 - Keep dependencies minimal (no drei/postprocessing). Animations read `scrollState` in `useFrame`; never set React state in animation loops.
 - Custom CSS in `globals.css` must stay inside `@layer base` / `@layer components` or it overrides Tailwind utilities.
-- Avoid oversized fixed layers (the grain overlay once broke screenshot capture); verify with `npm run typecheck` and `npm run build`.
+- Avoid oversized fixed layers (the grain overlay once broke screenshot capture); verify with `npm run typecheck`, `npm run build` and `npm run test:e2e`.
+- Motion: use `isReducedMotion()` from `lib/motion.ts` (OS preference or the visitor override), never `matchMedia` directly; reduced motion slows scenes, it does not freeze them.
