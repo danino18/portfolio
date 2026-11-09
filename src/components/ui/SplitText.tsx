@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useRef, type ElementType } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
 
@@ -26,7 +27,7 @@ export default function SplitText({ text, as: Tag = "span", className = "", trig
     const el = ref.current;
     if (!el) return;
     setupGsap();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = isReducedMotion();
     if (reduced) return;
     const ctx = gsap.context(() => {
       const chars = el.querySelectorAll(".split-char");

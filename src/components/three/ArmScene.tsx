@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -148,7 +149,7 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
   const reduced = useRef(false);
 
   useEffect(() => {
-    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reduced.current = isReducedMotion();
     ctl.current.invalidate = invalidate;
   }, [ctl, invalidate]);
 

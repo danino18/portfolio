@@ -5,12 +5,13 @@ import { factLabels, getAdjacent, getProject, projects, type FactState } from "@
 import { site } from "@/content/site";
 import SplitText from "@/components/ui/SplitText";
 import Reveal from "@/components/ui/Reveal";
-import Magnetic from "@/components/ui/Magnetic";
 import { TransitionLink } from "@/components/shell/PageTransition";
 import ProjectSigil from "@/components/projects/ProjectSigil";
 import ProjectStage from "@/components/projects/ProjectStage";
 import Footer from "@/components/shell/Footer";
-import { ArrowIcon, ExternalIcon, GitHubIcon } from "@/components/ui/Icons";
+import ProjectLinks from "@/components/projects/ProjectLinks";
+import { ArrowIcon } from "@/components/ui/Icons";
+import { fitVars } from "@/lib/type";
 
 export const dynamicParams = false;
 
@@ -51,43 +52,60 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       <header className="relative overflow-hidden border-b border-line">
         <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(60% 70% at 80% 30%, ${p.accent.a}1f, transparent 70%)` }} />
         <div aria-hidden className="grid-bg pointer-events-none absolute inset-0 opacity-25 [mask-image:radial-gradient(60%_60%_at_70%_40%,#000,transparent)]" />
-        <div className="relative mx-auto grid max-w-[1800px] gap-10 px-[var(--gutter)] pb-20 pt-36 md:pt-48 lg:grid-cols-[1.3fr_1fr] lg:items-end">
-          <div>
+        <div className="relative mx-auto grid max-w-[1800px] gap-8 px-[var(--gutter)] pb-14 pt-[calc(var(--nav-h)+3rem)] sm:pb-20 md:pt-44 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end lg:gap-10">
+          <div className="cq min-w-0">
             <Reveal className="label mb-8 flex flex-wrap items-center gap-3">
               <TransitionLink href="/#work" label="work" className="transition-colors hover:text-ink">
                 ← All work
               </TransitionLink>
               <span className="h-px w-8 bg-line" />
-              <span style={{ color: p.accent.a }}>{p.index} / 05</span>
+              <span style={{ color: p.accent.a }}>
+                {p.index} / {String(projects.length).padStart(2, "0")}
+              </span>
               <span className="chip !text-[0.62rem]" style={{ borderColor: `${p.accent.a}77`, color: p.accent.a }}>
                 {p.statusLabel}
               </span>
             </Reveal>
-            <h1 id="project-title" aria-label={p.title} className="font-display text-[clamp(2.8rem,9vw,8.5rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.035em]">
+            <h1
+              id="project-title"
+              aria-label={p.title}
+              className="fit-title font-display font-extrabold uppercase leading-[0.9] tracking-[-0.035em]"
+              style={fitVars(p.titleLines, "clamp(2.6rem, 1.2rem + 6.5vw, 8.5rem)")}
+            >
               {p.titleLines.map((l, i) => (
                 <SplitText key={l} text={l} className={`block ${i === 0 ? "metal-text" : ""}`} stagger={0.04} />
               ))}
             </h1>
-            <Reveal as="p" className="mt-8 max-w-xl font-display text-xl font-semibold leading-snug md:text-2xl" style={{ color: p.accent.a }}>
+            <Reveal as="p" className="mt-6 max-w-xl font-display text-[clamp(1.15rem,1rem+0.7vw,1.6rem)] font-semibold leading-snug sm:mt-8" style={{ color: p.accent.a }}>
               {p.tagline}
             </Reveal>
+            {p.credit && (
+              <Reveal as="p" className="mt-4 max-w-xl text-sm leading-relaxed text-mute">
+                {p.credit}
+              </Reveal>
+            )}
+            {p.links.length > 0 && (
+              <Reveal className="mt-8">
+                <ProjectLinks project={p} size="lg" />
+              </Reveal>
+            )}
           </div>
-          <Reveal className="h-56 md:h-72 lg:h-80" aria-hidden>
+          <Reveal className="hidden h-56 sm:block md:h-72 lg:h-80" aria-hidden>
             <ProjectSigil project={p} />
           </Reveal>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] py-20 md:py-28">
+      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] py-14 sm:py-20 md:py-28">
         <ProjectStage project={p} />
       </div>
 
-      <div className="mx-auto grid max-w-[1800px] gap-16 px-[var(--gutter)] pb-24 lg:grid-cols-[1fr_1fr] lg:gap-24">
-        <section aria-labelledby="overview">
+      <div className="mx-auto grid max-w-[1800px] gap-14 px-[var(--gutter)] pb-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-24">
+        <section aria-labelledby="overview" className="min-w-0">
           <Reveal as="h2" id="overview" className="label mb-6">
             Overview
           </Reveal>
-          <div className="space-y-6 text-lg leading-relaxed text-ink/90">
+          <div className="max-w-[68ch] space-y-6 text-[1.05rem] leading-relaxed text-ink/90 sm:text-lg">
             {p.description.map((para, i) => (
               <Reveal as="p" key={i} delay={i * 0.06}>
                 {para}
@@ -118,30 +136,26 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           </Reveal>
 
           {p.links.length > 0 ? (
-            <Reveal className="mt-10 flex flex-wrap gap-3">
-              {p.links.map((l) => (
-                <Magnetic key={l.href}>
-                  <a href={l.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2.5 rounded-full border border-white/25 px-6 py-3.5 font-mono text-[0.72rem] uppercase tracking-[0.12em] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
-                    <GitHubIcon /> {l.label} <ExternalIcon />
-                  </a>
-                </Magnetic>
-              ))}
+            <Reveal className="mt-10">
+              <ProjectLinks project={p} size="lg" />
             </Reveal>
           ) : (
             <Reveal as="p" className="label mt-10 !text-faint">
-              No public repository or live URL for this project. This page is the case study.
+              {p.status === "exploratory"
+                ? "Future / experimental work — no public repository or live demo yet. This page is the case study."
+                : "No public repository or live URL for this project yet. This page is the case study."}
             </Reveal>
           )}
         </section>
 
-        <section aria-labelledby="status">
+        <section aria-labelledby="status" className="min-w-0">
           <Reveal as="h2" id="status" className="label mb-6">
             What is real here
           </Reveal>
           <ul className="divide-y divide-line border-y border-line">
             {p.facts.map((f, i) => (
-              <Reveal as="li" key={i} delay={i * 0.04} className="grid grid-cols-[auto_1fr] items-start gap-5 py-5">
-                <span className={`chip mt-0.5 !text-[0.6rem] ${factTone[f.state]}`}>{factLabels[f.state]}</span>
+              <Reveal as="li" key={i} delay={i * 0.04} className="grid items-start gap-3 py-5 sm:grid-cols-[auto_1fr] sm:gap-5">
+                <span className={`chip mt-0.5 w-fit !text-[0.6rem] ${factTone[f.state]}`}>{factLabels[f.state]}</span>
                 <span className="leading-relaxed text-mute">{f.text}</span>
               </Reveal>
             ))}
@@ -160,14 +174,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
               href={`/projects/${q.slug}`}
               label={q.title}
               data-cursor={dir}
-              className={`group flex flex-col gap-4 px-[var(--gutter)] py-14 transition-colors hover:bg-white/[0.03] ${i === 1 ? "sm:border-l sm:border-line sm:text-right sm:items-end" : "border-b border-line sm:border-b-0"}`}
+              className={`cq group flex min-w-0 flex-col gap-4 px-[var(--gutter)] py-12 transition-colors sm:py-14 hover:bg-white/[0.03] ${i === 1 ? "sm:border-l sm:border-line sm:text-right sm:items-end" : "border-b border-line sm:border-b-0"}`}
             >
               <span className="label flex items-center gap-2">
                 {i === 0 && <ArrowIcon className="h-3.5 w-3.5 rotate-180" />}
                 {dir} · {q.index}
                 {i === 1 && <ArrowIcon className="h-3.5 w-3.5" />}
               </span>
-              <span className="font-display text-3xl font-extrabold uppercase leading-none tracking-tight transition-colors md:text-5xl" style={{ color: q.accent.a }}>
+              <span className="fit-title font-display font-extrabold uppercase leading-none tracking-tight transition-colors" style={{ color: q.accent.a, ...fitVars(q.title, "clamp(1.75rem, 1.2rem + 2.2vw, 3rem)") }}>
                 {q.title}
               </span>
             </TransitionLink>

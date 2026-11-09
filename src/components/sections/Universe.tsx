@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, setupGsap } from "@/lib/gsap";
 import { scrollState } from "@/lib/scrollState";
@@ -9,6 +10,7 @@ import SplitText from "@/components/ui/SplitText";
 import Reveal from "@/components/ui/Reveal";
 import { TransitionLink } from "@/components/shell/PageTransition";
 import { ArrowIcon } from "@/components/ui/Icons";
+import { fitVars } from "@/lib/type";
 
 type Orientation = "d" | "m";
 
@@ -59,7 +61,7 @@ function Constellation({ orientation, active, setActive }: { orientation: Orient
     setupGsap();
     const el = svg.current;
     if (!el) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = isReducedMotion();
     const phase = nodes.map((_, i) => ({ a: i * 1.7, b: i * 2.3, s: 0.35 + (i % 5) * 0.08 }));
     const cur: Record<string, [number, number]> = {};
     const apply = (t: number) => {
@@ -240,7 +242,9 @@ function Detail({ active }: { active: string | null }) {
         <p className="label mb-3" style={{ color: groupColor[skill.group] }}>
           {groupLabel[skill.group]}
         </p>
-        <h3 className="font-display text-3xl font-extrabold uppercase leading-none tracking-tight md:text-4xl">{skill.label}</h3>
+        <h3 className="fit-title font-display font-extrabold uppercase leading-[0.95] tracking-tight" style={fitVars(skill.label, "clamp(1.75rem, 1.3rem + 1.4vw, 2.25rem)")}>
+          {skill.label}
+        </h3>
         <p className="mt-4 text-mute">{skill.blurb}</p>
         <p className="label mt-6 !text-[0.6rem]">Appears in</p>
         <ul className="mt-3 flex flex-col gap-2">
@@ -270,7 +274,9 @@ function Detail({ active }: { active: string | null }) {
         <p className="label mb-3" style={{ color: project.accent.a }}>
           {project.statusLabel}
         </p>
-        <h3 className="font-display text-3xl font-extrabold uppercase leading-none tracking-tight md:text-4xl">{project.title}</h3>
+        <h3 className="fit-title font-display font-extrabold uppercase leading-[0.95] tracking-tight" style={fitVars(project.title, "clamp(1.75rem, 1.3rem + 1.4vw, 2.25rem)")}>
+          {project.title}
+        </h3>
         <p className="mt-4 text-mute">{project.tagline}</p>
         <p className="label mt-6 !text-[0.6rem]">Topics involved</p>
         <ul className="mt-3 flex flex-wrap gap-2">
@@ -293,17 +299,17 @@ export default function Universe() {
   const [active, setActive] = useState<string | null>(null);
   return (
     <section id="universe" aria-labelledby="universe-title" className="relative border-t border-line">
-      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] py-28 md:py-44">
+      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] py-24 md:py-36 xl:py-44">
         <Reveal className="label mb-8 flex items-center gap-4">
           <span className="text-cyan">04</span>
           <span className="h-px w-12 bg-line" />
           Memory · Technical universe
         </Reveal>
-        <h2 id="universe-title" className="section-title metal-text max-w-[14ch]">
+        <h2 id="universe-title" className="section-title metal-text">
           <SplitText text="How it all connects." />
         </h2>
 
-        <div className="mt-14 grid gap-8 lg:grid-cols-[1fr_22rem] lg:gap-14">
+        <div className="mt-12 grid gap-8 md:mt-14 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-14">
           <div className="relative overflow-hidden rounded-3xl border border-line bg-[radial-gradient(70%_70%_at_50%_40%,rgba(139,92,255,0.09),transparent_70%)] p-2 md:p-6">
             <div aria-hidden className="grid-bg pointer-events-none absolute inset-0 opacity-30 [mask-image:radial-gradient(70%_70%_at_50%_45%,#000,transparent)]" />
             <div className="relative hidden md:block">
@@ -313,7 +319,7 @@ export default function Universe() {
               <Constellation orientation="m" active={active} setActive={setActive} />
             </div>
           </div>
-          <aside className="panel min-h-[18rem] p-6 md:p-8 lg:sticky lg:top-28 lg:self-start">
+          <aside className="panel cq min-h-[18rem] min-w-0 p-6 md:p-8 lg:sticky lg:top-28 lg:self-start">
             <Detail active={active} />
           </aside>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import { sfx } from "@/lib/sfx";
@@ -241,7 +242,7 @@ export default function PlannerExperience() {
 
   // Morph all chips to the current layout.
   useLayoutEffect(() => {
-    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reduced.current = isReducedMotion();
     const first = Object.keys(pos.current).length === 0;
     COURSES.forEach((c, i) => {
       const t = layout.boxes[c.id];

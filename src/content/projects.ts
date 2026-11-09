@@ -16,10 +16,43 @@ export interface ProjectFact {
   text: string;
 }
 
+/**
+ * An outbound link. Only add one when the destination has been checked to
+ * exist and to be the right project; `verified` records how.
+ */
+export type ProjectLinkKind = "live" | "github" | "video";
+
 export interface ProjectLink {
+  kind: ProjectLinkKind;
   label: string;
   href: string;
+  /** How/when the URL was verified (kept in the data, not rendered). */
+  verified: string;
 }
+
+/** Real footage/media for a project (never generated or placeholder footage). */
+export type ProjectMedia =
+  | {
+      kind: "youtube";
+      /** YouTube video id. */
+      id: string;
+      title: string;
+      /** Width / height. Shorts are 9/16. */
+      aspect: number;
+      caption: string;
+      /** Public watch URL, also used as the no-JS / blocked-embed fallback. */
+      url: string;
+    }
+  | {
+      kind: "file";
+      /** Files live in /public/media/<slug>/ (e.g. arm.mp4 + arm.webm + arm-poster.jpg). */
+      sources: { src: string; type: string }[];
+      poster: string;
+      title: string;
+      aspect: number;
+      caption: string;
+      loop?: boolean;
+    };
 
 export interface Project {
   slug: string;
@@ -36,6 +69,10 @@ export interface Project {
   stack: string[];
   accent: { a: string; b: string };
   links: ProjectLink[];
+  /** Real footage, shown next to the interactive visual. */
+  media?: ProjectMedia;
+  /** Collaborators / context, shown on the case-study page. */
+  credit?: string;
   facts: ProjectFact[];
   /** Short honest disclaimer shown next to the interactive visual. */
   demoNote: string;
@@ -97,32 +134,42 @@ export const projects: Project[] = [
     titleLines: ["DEGREE", "PLANNER"],
     tagline: "A prerequisite graph that becomes a semester plan.",
     status: "project",
-    statusLabel: "Web application",
+    statusLabel: "Live web application",
     summary:
-      "An interactive academic degree-planning application for Technion engineering students.",
+      "ee-planer: an interactive degree-planning and requirements-validation app for Technion Electrical & Computer Engineering students, deployed as a live pilot.",
     description: [
-      "Planning a degree means juggling prerequisites, credit points, specialization tracks and a GPA, usually in a spreadsheet. The Degree Planner models those rules explicitly so the plan itself can tell you when something does not add up.",
-      "Students lay out semesters with drag-and-drop, see how courses depend on each other, track specialization progress, calculate their GPA, check the plan against degree requirements, keep multiple plans and share them.",
-      "The interesting engineering is the rule model: prerequisites and requirement groups have to compose without turning every new rule into a special case, while the interface stays fast and obvious.",
+      "Planning a degree means juggling prerequisites, credit points, specialization groups, minors and a GPA, usually in a spreadsheet. ee-planer models those rules explicitly so the plan itself can tell you when something does not add up.",
+      "Students lay out semesters with drag-and-drop, see how courses depend on each other, track specialization and minor progress, enter grades or import a transcript, keep several plan versions side by side and check the plan against the degree requirements of their track and catalog year.",
+      "The interesting engineering is the rule model: prerequisites, requirement groups and catalog-year variants have to compose as data and pure functions, so they can be unit-tested, while the interface stays fast and obvious. It was built as a Technion ECE final project and runs as a pilot at ee-planer.vercel.app.",
     ],
     topics: [
       "Semester drag-and-drop planning",
       "Course prerequisites",
-      "Specialization tracking",
-      "GPA calculation",
+      "Specialization groups & minors",
+      "GPA & transcript import",
       "Degree requirement validation",
-      "Multiple plans and sharing",
+      "Plan versions and sharing",
     ],
-    stack: ["Web application"],
+    stack: ["React 19", "TypeScript", "Vite", "Tailwind CSS", "Zustand", "dnd-kit", "Firebase", "Vercel"],
     accent: { a: "#9b7bff", b: "#e4d9ff" },
-    links: [],
-    facts: [
-      { state: "built", text: "Semester planning with drag-and-drop." },
-      { state: "built", text: "Course prerequisites, specialization tracking and GPA calculation." },
-      { state: "built", text: "Degree requirement validation, multiple plans and plan sharing." },
-      { state: "illustrative", text: "The graph and planner on this site use made-up sample courses and grades, not real Technion data." },
+    links: [
+      {
+        kind: "live",
+        label: "Visit live website",
+        href: "https://ee-planer.vercel.app",
+        verified: "2026-11-09: HTTP 200 from the Vercel project ee-planer (title “מתכנן לימודים – הטכניון”); named as the pilot deployment in the project's docs/deploy.md and final report. Source repository is private.",
+      },
     ],
-    demoNote: "Interactive sample — made-up courses and grades, not real Technion data.",
+    credit: "Technion ECE final project (Spring 2026) with Dvir Bartov and Gal Siegel, supervised by Hovav Gazit.",
+    facts: [
+      { state: "built", text: "Live pilot at ee-planer.vercel.app: drag-and-drop semester planning with real-time requirement validation." },
+      { state: "built", text: "Six ECE tracks and catalog years 2021–2027, 73 specialization-group definitions and 3 minors (per the final project report)." },
+      { state: "built", text: "Rule engines as pure functions with 31 automated test files, run in CI on every push and pull request." },
+      { state: "built", text: "Firebase Auth and Firestore sync, plan versions with side-by-side comparison, plan sharing and transcript import." },
+      { state: "built", text: "More than 210 registered users during the pilot, as reported in the final project report (October 2026)." },
+      { state: "illustrative", text: "The graph and planner on this site use made-up sample courses and grades, not real Technion data — the live site is the real application." },
+    ],
+    demoNote: "Interactive sample — made-up courses and grades. The real application is on the live website.",
     interaction: "Switch between graph and planner, then drag a course into another semester.",
   },
   {
@@ -131,27 +178,37 @@ export const projects: Project[] = [
     index: "03",
     title: "Controlled Maze FPGA Game",
     titleLines: ["MAZE", "FPGA"],
-    tagline: "A maze game, drawn pixel by pixel by logic you can point at.",
+    tagline: "Flappy Bird, inverted: you steer the coral, not the bird.",
     status: "project",
     statusLabel: "Hardware project",
     summary:
-      "A game built on an Intel/Altera Cyclone V FPGA development board using SystemVerilog, VGA output, PS/2 keyboard input and finite-state machines.",
+      "An underwater Flappy-Bird-style game in SystemVerilog on an Intel Cyclone V board: the bird flies by itself, and the player moves the openings in the coral columns so it can pass. VGA video, PS/2 keyboard, sound, and an AI player trained on the FPGA itself.",
     description: [
-      "There is no CPU and no frame buffer to hide behind. The picture is produced by hardware that knows, on every pixel clock, what color the next pixel should be. The keyboard arrives as a PS/2 bit stream, and the game rules live in finite-state machines.",
-      "The design targets an Intel/Altera Cyclone V development board and is written in SystemVerilog, with simulation and tooling alongside the FPGA sources in the repository.",
-      "The playable maze on this page is a lightweight web approximation of the idea. It is not the original FPGA implementation.",
+      "The twist is the control scheme. The bird is autonomous: it holds a fixed horizontal position and moves vertically on its own, following a smooth, random or pursuit trajectory depending on the difficulty. The player never touches the bird. Holding the up or down arrow moves one shared offset that shifts the openings of all coral columns together, and the job is to keep the gap lined up with the bird as the columns scroll past.",
+      "There is no CPU and no frame buffer. Every pixel of the 640×480 VGA picture is chosen by hardware on its pixel clock, from a procedural water gradient, sprite ROMs for the bird and coral, and a text layer. The PS/2 keyboard, the game state machine, the geometric collision check and the score all run as synchronous logic on one 31.5 MHz clock.",
+      "On top of the game, the repository documents an AI mode: a small neural network trained on the FPGA by a genetic algorithm, evaluating eight candidates in parallel with the same game-rule modules the player uses, then playing the normal game.",
+      "The playable version on this page is a browser approximation that reuses the project's own sprite art and rules. It is not the SystemVerilog implementation.",
     ],
-    topics: ["SystemVerilog", "VGA output", "PS/2 keyboard interface", "Finite-state machines", "Cyclone V FPGA"],
-    stack: ["SystemVerilog", "Intel/Altera Cyclone V", "VGA", "PS/2"],
+    topics: ["SystemVerilog", "VGA 640×480", "PS/2 keyboard", "Finite-state machines", "Sprite ROMs", "On-FPGA genetic algorithm"],
+    stack: ["SystemVerilog", "Intel Cyclone V", "Quartus Prime", "ModelSim", "VGA", "PS/2"],
     accent: { a: "#7dff9a", b: "#38e8ff" },
-    links: [{ label: "GitHub repository", href: "https://github.com/danino18/basic_controled_mazed" }],
-    facts: [
-      { state: "built", text: "Maze game on a Cyclone V FPGA board, written in SystemVerilog." },
-      { state: "built", text: "VGA output and PS/2 keyboard interaction driven by finite-state machines." },
-      { state: "illustrative", text: "The playable game here is a web demo approximating the concept, not the FPGA design." },
+    links: [
+      {
+        kind: "github",
+        label: "View on GitHub",
+        href: "https://github.com/danino18/basic_controled_mazed",
+        verified: "2026-11-09: public repository, cloned and read (docs/DESIGN.md, fpga/RTL, assets/sprites).",
+      },
     ],
-    demoNote: "Web demo — an approximation, not the original FPGA implementation.",
-    interaction: "Click the screen, then use arrow keys or WASD (or the on-screen pad) to reach the exit.",
+    facts: [
+      { state: "built", text: "The bird moves only vertically at a fixed x; the player holds ↑/↓ to move every coral opening together. +1 point per column passed." },
+      { state: "built", text: "Three difficulty modes change only the bird's trajectory generator (sine, random turns, rate-limited pursuit)." },
+      { state: "built", text: "VGA output at ~72.6 frames/s, PS/2 arrow keys, geometric hitboxes, score and best score on VGA and 7-segment displays, sound effects." },
+      { state: "built", text: "AI mode documented in the repository: a 4→6→1 network trained on the FPGA by a genetic algorithm over eight parallel game lanes." },
+      { state: "illustrative", text: "The playable game here is a browser approximation using the project's sprite art; its AI autopilot is a simple controller, not the trained network." },
+    ],
+    demoNote: "Browser approximation of the FPGA game — the project's own sprite art, not the SystemVerilog design.",
+    interaction: "Hold ↑/↓ or W/S — or press the top/bottom of the screen — to move the coral openings. The bird flies on its own.",
   },
   {
     slug: "physical-ai-robot-arm",
@@ -166,14 +223,36 @@ export const projects: Project[] = [
       "Robotics work with a UR5e arm, an OnRobot RG6 gripper and an Intel RealSense camera on ROS 2, associated with a Technion Physical AI workshop.",
     description: [
       "The workshop setup combines a UR5e robot arm, an OnRobot RG6 gripper and a wrist-mounted Intel RealSense camera. The arm looks at a workspace, works out where things are, plans a collision-free motion and manipulates objects.",
-      "The repository documents a ROS 2 stack where task planning, state estimation, motion planning and manipulation skills are separate, readable layers, and the same programs target both a Gazebo simulation and the real robot cell.",
-      "The block-stacking arm on this page is an illustrative 3D visualization built for this site. It does not play back robot data.",
+      "The repository documents a ROS 2 stack where task planning, state estimation, motion planning and manipulation skills are separate, readable layers: items are recognised with SAM 3, grasps are chosen, collision-free motions are planned with MoveIt, and a goal can be handed to a task planner. The same programs target both a Gazebo simulation and the real robot cell.",
+      "The video on this page is real footage of the cell. The block-stacking arm next to it is an illustrative 3D visualization built for this site; it does not play back robot data.",
     ],
     topics: ["UR5e", "OnRobot RG6 gripper", "Intel RealSense", "ROS 2", "Robot perception", "Manipulation"],
-    stack: ["ROS 2", "Python", "UR5e", "OnRobot RG6", "Intel RealSense"],
+    stack: ["ROS 2", "Python", "MoveIt", "Gazebo", "SAM 3", "UR5e", "OnRobot RG6", "Intel RealSense"],
     accent: { a: "#ff8a3d", b: "#9fb4d0" },
-    links: [{ label: "GitHub repository", href: "https://github.com/danino18/physAI-arm-ex" }],
+    links: [
+      {
+        kind: "github",
+        label: "View on GitHub",
+        href: "https://github.com/danino18/physAI-arm-ex",
+        verified: "2026-11-09: public repository (a fork of the workshop repository), cloned and README read.",
+      },
+      {
+        kind: "video",
+        label: "Watch on YouTube",
+        href: "https://youtube.com/shorts/yq8GpWCdJY8",
+        verified: "Provided by Eyal on 2026-11-09 as the video of the robot cell in operation.",
+      },
+    ],
+    media: {
+      kind: "youtube",
+      id: "yq8GpWCdJY8",
+      title: "Physical AI robotic arm in operation",
+      aspect: 9 / 16,
+      caption: "Real footage of the robot cell in operation.",
+      url: "https://youtube.com/shorts/yq8GpWCdJY8",
+    },
     facts: [
+      { state: "built", text: "Real footage of the cell in operation is embedded on this page (YouTube)." },
       { state: "built", text: "Workshop codebase for a UR5e + RG6 + RealSense pick-and-place cell, documented in the repository." },
       { state: "built", text: "Layered structure: task planning, state estimation, motion planning and manipulation skills." },
       { state: "built", text: "The same programs target a Gazebo simulation and the real robot." },
@@ -186,33 +265,38 @@ export const projects: Project[] = [
     slug: "advanced-explorations",
     kind: "explorations",
     index: "05",
-    title: "Advanced Explorations",
-    titleLines: ["ADVANCED", "EXPLORATIONS"],
+    title: "Future Projects & Explorations",
+    titleLines: ["FUTURE", "PROJECTS"],
     tagline: "Questions I am still working out, shown as experiments.",
     status: "exploratory",
-    statusLabel: "Exploratory",
+    statusLabel: "Future & experimental",
     summary:
-      "Ongoing explorations in household robotics, Wi-Fi channel-state sensing and electronic-nose sensor arrays.",
+      "Future and experimental work, led by Wi-Fi Sensing: human detection using ESP32 devices and AI. Also household robotics and electronic-nose sensor arrays.",
     description: [
-      "Three directions that interest me and that I am still exploring: robots that handle soft, deformable things like laundry; using the channel-state information of a cheap ESP32 Wi-Fi radio to sense motion indoors; and arrays of gas sensors combined with machine learning, an electronic nose.",
-      "These are explorations, not finished products. There are no claimed results here. Each visual is a toy simulation that illustrates the underlying idea, and is labeled that way.",
+      "Wi-Fi Sensing: Human Detection Using ESP32 and AI. Every Wi-Fi packet carries channel state information (CSI): how each subcarrier's amplitude and phase were changed by the room on the way. A person moving through the room changes those reflections. The project explores whether ESP32 devices and machine learning can turn CSI into indoor motion detection and localization.",
+      "The long-term research goal is to explore whether Wi-Fi signals can help reconstruct more about a person: position, movement, and potentially body shape. That is a research question, not a result.",
+      "Two more directions follow it: robots that handle soft, deformable things like laundry, and arrays of gas sensors combined with machine learning, an electronic nose.",
+      "These are future and experimental projects, not finished products. Nothing here is a validated system and there are no claimed results. Each visual is a conceptual visualization or toy simulation, and is labeled that way.",
     ],
-    topics: ["Household robotics", "Deformable-object manipulation", "ESP32 Wi-Fi CSI sensing", "Indoor motion detection", "Sensor arrays", "Machine learning"],
-    stack: ["Robotics", "ESP32", "Sensor arrays", "Machine learning"],
+    topics: ["ESP32 Wi-Fi CSI sensing", "Indoor motion detection & localization", "Machine learning", "Household robotics", "Deformable-object manipulation", "Sensor arrays"],
+    stack: ["ESP32", "Wi-Fi CSI", "Machine learning", "Robotics", "Sensor arrays"],
     accent: { a: "#ff6bd6", b: "#7fe8ff" },
     links: [],
     facts: [
+      { state: "exploratory", text: "Wi-Fi Sensing: human detection using ESP32 devices and AI — indoor motion detection and localization from channel state information." },
+      { state: "direction", text: "Long-term research goal: whether Wi-Fi signals can help estimate position, movement and potentially body shape." },
       { state: "exploratory", text: "Robotic laundry manipulation and household robotics." },
-      { state: "exploratory", text: "ESP32 Wi-Fi channel-state sensing for indoor motion detection." },
       { state: "exploratory", text: "Electronic-nose sensor arrays and AI." },
-      { state: "illustrative", text: "All three visuals are toy simulations of the concept. They are not measurements or results." },
+      { state: "illustrative", text: "The Wi-Fi visual is a conceptual research visualization with simulated signals; the other two are toy simulations. None are measurements or results." },
     ],
-    demoNote: "Toy simulations of the concepts — not measurements or results.",
-    interaction: "Pick an experiment: drag the cloth, wave through the room, or swap the odor.",
+    demoNote: "Conceptual research visualization & toy simulations — simulated signals, not measurements or a validated system.",
+    interaction: "Wi-Fi sensing first: move through the room. Then try the cloth and the electronic nose.",
   },
 ];
 
 export const getProject = (slug: string) => projects.find((p) => p.slug === slug);
+
+export const linkByKind = (p: Project, kind: ProjectLinkKind) => p.links.find((l) => l.kind === kind);
 
 export const getAdjacent = (slug: string) => {
   const i = projects.findIndex((p) => p.slug === slug);

@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
@@ -115,7 +116,7 @@ export default function DartExperience() {
 
   useEffect(() => {
     setupGsap();
-    const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const r = isReducedMotion();
     setReduced(r);
     if (r) return;
     // First time the stage is on screen: hold on the helix, then transform it.

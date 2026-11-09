@@ -20,14 +20,34 @@
 
 :root {
   color-scheme: dark;
-  --gutter: clamp(1.25rem, 4vw, 4rem);
+  /* Safe areas (iPhone notch / home indicator, landscape side insets). */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --gutter-base: clamp(1rem, 0.6rem + 3vw, 4rem);
+  --gutter: max(var(--gutter-base), var(--safe-l), var(--safe-r));
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --nav-h: 4.25rem;
+  --nav-h: calc(clamp(3.5rem, 3rem + 1.2vw, 4.25rem) + var(--safe-t));
+  /* Viewport units: small viewport (URL bar shown) where supported. */
+  --svh: 1vh;
+  --dvh: 1vh;
+  /* Fluid type scale */
+  --fs-section: clamp(2.25rem, 1.1rem + 5.4vw, 6.75rem);
+  --fs-project: clamp(2.1rem, 1.2rem + 4.2vw, 5.5rem);
+  --fs-project-side: clamp(2rem, 1.1rem + 2.9vw, 4.4rem);
+}
+@supports (height: 1svh) {
+  :root {
+    --svh: 1svh;
+    --dvh: 1dvh;
+  }
 }
 
 @layer base {
 html {
   background: #05060a;
+  overflow-x: clip;
   -webkit-text-size-adjust: 100%;
   scrollbar-width: thin;
   scrollbar-color: #2a3042 #05060a;
@@ -124,9 +144,41 @@ button {
   font-family: var(--font-display);
   font-weight: 800;
   text-transform: uppercase;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  font-size: clamp(2.4rem, 7.4vw, 7.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  /* Fluid, capped, and never wider per word than the content column. */
+  font-size: min(var(--fs-section), calc((100vw - 2 * var(--gutter)) / (var(--chars, 9) * 1.1)));
+  max-width: 14ch;
+  text-wrap: balance;
+}
+@media (max-width: 479px) {
+  .section-title {
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+}
+
+/* ---------- Fit-to-container display type ----------
+ * Long uppercase words in Syne 800 are ~1.1em per glyph. --chars is the
+ * longest word of the heading, so no single word can ever exceed the
+ * container: the size is min(design size, width / (chars × 1.1)).
+ * `cq` makes an element the inline-size container the cqi units refer to. */
+.cq {
+  container-type: inline-size;
+}
+.fit-title {
+  --fit-k: 1.1;
+  font-size: min(var(--fs, 4rem), calc((100vw - 2 * var(--gutter)) / (var(--chars, 8) * var(--fit-k))));
+  font-size: min(var(--fs, 4rem), calc(100cqi / (var(--chars, 8) * var(--fit-k))));
+  text-wrap: balance;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+p {
+  text-wrap: pretty;
 }
 
 .metal-text {
@@ -340,20 +392,47 @@ input[type="range"].tech-range::-moz-range-thumb {
   box-shadow: 0 0 14px var(--accent, #38e8ff);
 }
 
-/* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce) {
-  .grain { animation: none; }
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-  .boot-veil { animation-delay: 0s; }
+/* ---------- Reduced motion ----------
+ * Driven by html[data-motion] (OS preference or the visitor's choice), not
+ * by a blanket kill switch: big movement goes, small ambient indicators stay
+ * (slower). The old rule zeroed every animation on the page, which made the
+ * site look broken on PCs with Windows "Animation effects" turned off. */
+html[data-motion="reduced"] .grain {
+  animation: none;
+}
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  scroll-behavior: auto !important;
+}
+html[data-motion="reduced"] .boot-veil {
+  animation-delay: 0s;
+  animation-duration: 0.2s;
+}
+html[data-motion="reduced"] .contact-track {
+  height: max(100svh, 560px);
 }
 
 @media (max-width: 767px) {
   .grain { opacity: 0.05; }
+}
+
+/* ---------- Video frame ---------- */
+.video-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #030407;
+  box-shadow: 0 0 0 1px rgba(255, 138, 61, 0.08), 0 30px 80px -30px rgba(255, 138, 61, 0.35), 0 0 120px -40px rgba(56, 232, 255, 0.25);
+}
+
+/* Hide scrollbars on horizontally scrolling chip rows while keeping them scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 }

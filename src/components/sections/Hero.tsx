@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
@@ -25,7 +26,7 @@ export default function Hero() {
 
   useEffect(() => {
     setupGsap();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = isReducedMotion();
     let seen = false;
     try {
       seen = sessionStorage.getItem(SEEN_KEY) === "1";
@@ -91,7 +92,16 @@ export default function Hero() {
           .to("[data-hero-hint]", { opacity: 0, ease: "none", duration: 0.2 }, 0);
       }
 
+      // The intro clock lives here, not in the WebGL loop: it advances on wall
+      // time whether or not a canvas is rendering (no WebGL, slow GPU, scene
+      // still loading), so the boot counter and "Skip intro" always finish.
+      scrollState.intro = reduced ? 1 : 0;
+      let lastT = performance.now();
       const progress = () => {
+        const now = performance.now();
+        const dt = Math.min(0.1, (now - lastT) / 1000);
+        lastT = now;
+        if (scrollState.intro < 1) scrollState.intro = Math.min(1, scrollState.intro + (dt * (scrollState.introSkip ? 5 : 1)) / dur);
         const p = scrollState.intro;
         if (boot.current) boot.current.textContent = String(Math.round(p * 100)).padStart(3, "0");
         if (p >= 1) {
@@ -104,6 +114,7 @@ export default function Hero() {
 
     return () => {
       ctx.revert();
+      scrollState.intro = 1;
       ScrollTrigger.refresh();
     };
   }, []);
@@ -114,7 +125,7 @@ export default function Hero() {
   };
 
   return (
-    <section id="top" ref={root} aria-label="Introduction" className="relative h-[100svh] min-h-[620px] overflow-hidden">
+    <section id="top" ref={root} aria-label="Introduction" className="relative h-[calc(var(--svh)*100)] min-h-[34rem] overflow-hidden [@media(orientation:landscape)_and_(max-height:520px)]:min-h-[28rem]">
       <div className="absolute inset-0" aria-hidden>
         <SceneCanvas fallback={<HeroFallback />} camera={{ position: [0, 0, 12], fov: 38, near: 0.1, far: 80 }} alwaysOn>
           <HeroScene introSeconds={introSeconds} />
@@ -123,7 +134,7 @@ export default function Hero() {
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,#05060a_6%,rgba(5,6,10,0.55)_36%,transparent_62%)]" />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-bg/80 to-transparent" />
 
-      <div ref={content} className="relative z-10 mx-auto flex h-full max-w-[1800px] flex-col justify-end px-[var(--gutter)] pb-[clamp(2.5rem,7vh,5rem)] pt-28">
+      <div ref={content} className="cq relative z-10 mx-auto flex h-full max-w-[1800px] flex-col justify-end px-[var(--gutter)] pb-[max(clamp(1.75rem,6vh,5rem),calc(var(--safe-b)+1rem))] pt-[calc(var(--nav-h)+1.5rem)]">
         <div data-hero-fade className="label mb-5 flex flex-wrap items-center gap-x-6 gap-y-2">
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-phosphor shadow-[0_0_10px_#7dff9a]" style={{ animation: "pulse-dot 2s infinite" }} />
@@ -135,17 +146,22 @@ export default function Hero() {
           </span>
         </div>
 
-        <h1 aria-label="Eyal Danino" data-hero-title className="display-xl metal-text text-[clamp(3rem,13.2vw,15rem)]">
+        <h1
+          aria-label="Eyal Danino"
+          data-hero-title
+          className="display-xl metal-text fit-title"
+          style={{ ["--fs" as string]: "clamp(2.5rem, min(13.2vw, 26svh), 15rem)", ["--chars" as string]: 6, ["--fit-k" as string]: 1.08 }}
+        >
           <SplitText text="EYAL" trigger="manual" className="block" />
           <SplitText text="DANINO" trigger="manual" className="block" />
         </h1>
 
-        <div className="mt-6 grid gap-8 md:mt-8 md:grid-cols-[1.3fr_1fr] md:items-end">
+        <div className="mt-4 grid gap-6 sm:mt-6 md:mt-8 md:gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-end">
           <div>
-            <p data-hero-tag className="font-display text-[clamp(1.05rem,2.6vw,2.25rem)] font-bold uppercase leading-tight tracking-[0.01em]">
+            <p data-hero-tag className="font-display text-[clamp(1rem,0.7rem+1.9vw,2.25rem)] font-bold uppercase leading-tight tracking-[0.01em]">
               <SplitText text={site.tagline} trigger="manual" className="glow-text" />
             </p>
-            <p data-hero-fade className="mt-4 max-w-2xl text-[0.95rem] text-mute md:text-base">
+            <p data-hero-fade className="mt-3 max-w-2xl text-[0.9rem] leading-relaxed text-mute sm:mt-4 md:text-base">
               {site.subheadline.map((s, i) => (
                 <span key={s}>
                   {i > 0 && (
@@ -159,13 +175,13 @@ export default function Hero() {
             </p>
           </div>
 
-          <div data-hero-fade className="flex flex-wrap items-center gap-3 md:justify-end">
+          <div data-hero-fade className="flex flex-wrap items-center gap-2.5 sm:gap-3 lg:justify-end">
             <Magnetic>
               <button
                 type="button"
                 onClick={() => scrollToId("work")}
                 data-cursor="Go"
-                className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-ink px-6 py-3.5 font-mono text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-bg transition-transform"
+                className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-ink px-5 py-3 font-mono text-[0.7rem] font-semibold sm:px-6 sm:py-3.5 sm:text-[0.72rem] uppercase tracking-[0.12em] text-bg transition-transform"
               >
                 <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-cyan to-violet transition-transform duration-500 ease-out group-hover:translate-x-0" />
                 <span className="relative">Explore my work</span>
@@ -177,7 +193,7 @@ export default function Hero() {
                 href={site.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.03] px-5 py-3.5 font-mono text-[0.72rem] uppercase tracking-[0.12em] backdrop-blur transition-colors hover:border-cyan hover:text-cyan"
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.03] px-4 py-3 font-mono text-[0.7rem] uppercase tracking-[0.12em] backdrop-blur transition-colors hover:border-cyan sm:px-5 sm:py-3.5 sm:text-[0.72rem] hover:text-cyan"
               >
                 <GitHubIcon /> GitHub <ExternalIcon />
               </a>
@@ -187,7 +203,7 @@ export default function Hero() {
                 href={site.links.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.03] px-5 py-3.5 font-mono text-[0.72rem] uppercase tracking-[0.12em] backdrop-blur transition-colors hover:border-violet hover:text-[#b9a1ff]"
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/[0.03] px-4 py-3 font-mono text-[0.7rem] uppercase tracking-[0.12em] backdrop-blur transition-colors hover:border-violet sm:px-5 sm:py-3.5 sm:text-[0.72rem] hover:text-[#b9a1ff]"
               >
                 <LinkedInIcon /> LinkedIn <ExternalIcon />
               </a>
@@ -196,7 +212,7 @@ export default function Hero() {
         </div>
       </div>
 
-      <div data-hero-hint className="pointer-events-none absolute inset-x-0 bottom-3 z-10 hidden justify-center md:flex">
+      <div data-hero-hint className="pointer-events-none absolute inset-x-0 bottom-3 z-10 hidden justify-center lg:flex [@media(max-height:700px)]:!hidden">
         <span className="label flex items-center gap-3 !text-[0.6rem]">
           <span aria-hidden className="relative block h-7 w-px overflow-hidden bg-white/15">
             <span className="absolute inset-x-0 top-0 h-3 bg-cyan" style={{ animation: "scan 1.8s ease-in-out infinite" }} />

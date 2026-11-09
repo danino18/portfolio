@@ -21,3 +21,23 @@ export const ExternalIcon = ({ className = "h-3.5 w-3.5" }: { className?: string
     <path d="M7 17 17 7M8 7h9v9" />
   </svg>
 );
+
+export const GlobeIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg aria-hidden viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" />
+  </svg>
+);
+
+export const PlayIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
+  </svg>
+);
+
+export const PauseIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg aria-hidden viewBox="0 0 24 24" className={className} fill="currentColor">
+    <rect x="6" y="5" width="4" height="14" rx="1" />
+    <rect x="14" y="5" width="4" height="14" rx="1" />
+  </svg>
+);

@@ -1,11 +1,13 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
 import { site } from "@/content/site";
 import SplitText from "@/components/ui/SplitText";
 import Reveal from "@/components/ui/Reveal";
 import { plates } from "./AboutPlates";
+import { fitVars } from "@/lib/type";
 
 const GAP = 64;
 
@@ -18,7 +20,7 @@ export default function About() {
 
   useEffect(() => {
     setupGsap();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = isReducedMotion();
     const plateEls = Array.from(stack.current!.querySelectorAll<HTMLElement>("[data-plate]"));
 
     if (reduced) {
@@ -70,19 +72,19 @@ export default function About() {
   return (
     <section id="about" ref={root} aria-labelledby="about-title" className="relative">
       {/* Intro copy */}
-      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] pb-24 pt-32 md:pt-48">
+      <div className="mx-auto max-w-[1800px] px-[var(--gutter)] pb-20 pt-24 sm:pb-24 md:pt-40 xl:pt-48">
         <Reveal className="label mb-8 flex items-center gap-4">
           <span className="text-cyan">02</span>
           <span className="h-px w-12 bg-line" />
           Decode · About
         </Reveal>
 
-        <h2 id="about-title" className="section-title metal-text max-w-[16ch]">
+        <h2 id="about-title" className="section-title metal-text">
           <SplitText text="From silicon to software." />
         </h2>
 
-        <div className="mt-16 grid gap-12 lg:grid-cols-[1.25fr_1fr] lg:gap-24">
-          <Reveal as="p" className="font-display text-[clamp(1.6rem,3.4vw,3.2rem)] font-bold leading-[1.12] tracking-tight">
+        <div className="mt-12 grid gap-10 md:mt-16 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-20 xl:gap-24">
+          <Reveal as="p" className="max-w-[24ch] font-display text-[clamp(1.45rem,0.9rem+2.2vw,3rem)] font-bold leading-[1.14] tracking-tight [text-wrap:balance]">
             {site.about.lead}
           </Reveal>
           <div className="space-y-6 text-[1.02rem] leading-relaxed text-mute lg:pt-3">
@@ -105,9 +107,9 @@ export default function About() {
 
       {/* Hardware → software sequence */}
       <div ref={seq} className="relative min-h-[100svh] overflow-hidden border-y border-line bg-[radial-gradient(80%_60%_at_70%_50%,rgba(56,232,255,0.06),transparent_70%)]">
-        <div className="mx-auto grid h-full min-h-[100svh] max-w-[1800px] items-center gap-6 px-[var(--gutter)] py-24 lg:grid-cols-[1fr_1.1fr] lg:py-0">
+        <div className="mx-auto grid h-full min-h-[calc(var(--svh)*100)] max-w-[1800px] items-center gap-6 px-[var(--gutter)] py-20 sm:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:py-0">
           {/* Text column */}
-          <div className="relative z-10">
+          <div className="cq relative z-10 min-w-0">
             <p className="label mb-6 flex items-center gap-3">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan" />
               The stack, bottom to top
@@ -121,8 +123,10 @@ export default function About() {
                   aria-hidden={active !== i}
                   className={`absolute inset-0 transition-all duration-700 ease-[var(--ease-out)] ${active === i ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"}`}
                 >
-                  <div className="font-display text-[clamp(5rem,12vw,11rem)] font-extrabold leading-none tracking-tighter text-white/[0.07]">0{i + 1}</div>
-                  <h3 className="font-display -mt-8 text-4xl font-extrabold uppercase leading-none tracking-tight md:text-6xl">{l.name}</h3>
+                  <div className="font-display text-[clamp(5rem,10vw,10rem)] font-extrabold leading-none tracking-tighter text-white/[0.07]">0{i + 1}</div>
+                  <h3 className="fit-title font-display -mt-8 font-extrabold uppercase leading-[0.95] tracking-tight" style={fitVars(l.name, "clamp(2.25rem, 1rem + 2.6vw, 3.75rem)")}>
+                    {l.name}
+                  </h3>
                   <p className="mt-5 max-w-md text-lg text-mute">{l.note}</p>
                   <p className="label mt-6 !text-cyan">{l.tag}</p>
                 </div>
@@ -133,7 +137,7 @@ export default function About() {
             <ol className="space-y-8 lg:hidden">
               {[...layers].reverse().map((l) => (
                 <li key={l.id} className="border-l border-line pl-5">
-                  <h3 className="font-display text-2xl font-extrabold uppercase tracking-tight">{l.name}</h3>
+                  <h3 className="font-display text-[clamp(1.25rem,1rem+1.2vw,1.6rem)] font-extrabold uppercase leading-tight tracking-tight">{l.name}</h3>
                   <p className="mt-2 text-mute">{l.note}</p>
                   <p className="label mt-3 !text-cyan">{l.tag}</p>
                 </li>
@@ -148,7 +152,7 @@ export default function About() {
           </div>
 
           {/* 3D stack */}
-          <div aria-hidden className="relative order-first mx-auto h-[min(60vh,28rem)] w-full max-w-[34rem] lg:order-none lg:h-[min(78vh,40rem)]" style={{ perspective: "1600px" }}>
+          <div aria-hidden className="relative order-first mx-auto h-[min(calc(var(--svh)*52),24rem)] w-full max-w-[34rem] sm:h-[min(calc(var(--svh)*60),28rem)] lg:order-none lg:h-[min(calc(var(--svh)*78),40rem)]" style={{ perspective: "1600px" }}>
             <div
               ref={stack}
               className="absolute left-1/2 top-1/2 h-[min(46vw,15rem)] w-[min(46vw,15rem)] lg:h-[min(30vw,22rem)] lg:w-[min(30vw,22rem)]"

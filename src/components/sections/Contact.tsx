@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
@@ -16,8 +17,10 @@ const MOBILE_LINES = ["LET'S", "BUILD", "SOMETHING", "THAT", "MATTERS."];
 
 function ContactFallback() {
   return (
-    <div aria-hidden className="absolute inset-0 grid place-items-center px-[var(--gutter)]">
-      <p className="display-xl metal-text text-center text-[clamp(2.2rem,8vw,7rem)]">{site.contact.headline}</p>
+    <div aria-hidden className="cq absolute inset-0 grid place-items-center px-[var(--gutter)] pb-40">
+      <p className="display-xl metal-text fit-title text-center" style={{ ["--fs" as string]: "clamp(2.2rem, 8vw, 7rem)", ["--chars" as string]: 9 }}>
+        {site.contact.headline}
+      </p>
     </div>
   );
 }
@@ -37,7 +40,7 @@ export default function Contact() {
 
   useEffect(() => {
     setupGsap();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = isReducedMotion();
     const items = reveal.current!.querySelectorAll("[data-reveal]");
     if (reduced) {
       scrollState.contact = 1;
@@ -65,8 +68,8 @@ export default function Contact() {
   }, []);
 
   return (
-    <section id="contact" ref={root} aria-labelledby="contact-title" className="relative h-[260svh] motion-reduce:h-[100svh]">
-      <div className="sticky top-0 h-[100svh] min-h-[560px] overflow-hidden">
+    <section id="contact" ref={root} aria-labelledby="contact-title" className="contact-track relative h-[calc(var(--svh)*260)]">
+      <div className="sticky top-0 h-[calc(var(--svh)*100)] min-h-[34rem] overflow-hidden">
         <h2 id="contact-title" className="sr-only">
           {site.contact.headline}
         </h2>
@@ -77,7 +80,7 @@ export default function Contact() {
         </div>
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_50%,transparent,rgba(5,6,10,0.65))]" />
 
-        <div ref={reveal} className="pointer-events-none absolute inset-x-0 bottom-0 z-10 mx-auto flex max-w-[1800px] flex-col items-center gap-6 px-[var(--gutter)] pb-[clamp(3rem,9vh,6rem)] text-center">
+        <div ref={reveal} className="pointer-events-none absolute inset-x-0 bottom-0 z-10 mx-auto flex max-w-[1800px] flex-col items-center gap-6 px-[var(--gutter)] pb-[max(clamp(2.5rem,9vh,6rem),calc(var(--safe-b)+1.5rem))] text-center">
           <p data-reveal className="label max-w-md !text-ink/80">
             {site.contact.blurb}
           </p>
@@ -105,7 +108,8 @@ export default function Contact() {
           </div>
           <p data-reveal className="label !text-[0.6rem] !text-faint">
             <ArrowIcon className="mr-2 inline h-3 w-3 -rotate-90" />
-            Move your cursor through the letters
+            <span className="[@media(pointer:coarse)]:hidden">Move your cursor through the letters</span>
+            <span className="hidden [@media(pointer:coarse)]:inline">Keep scrolling to assemble the letters</span>
           </p>
         </div>
       </div>

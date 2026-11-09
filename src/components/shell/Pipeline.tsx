@@ -49,7 +49,7 @@ export default function Pipeline() {
   return (
     <>
       {/* Desktop: vertical pipeline */}
-      <nav aria-label="Page sections" className="pointer-events-none fixed right-5 top-1/2 z-[60] hidden -translate-y-1/2 lg:block">
+      <nav aria-label="Page sections" className="pointer-events-none fixed right-[max(1.25rem,var(--safe-r))] top-1/2 z-[60] hidden -translate-y-1/2 lg:block">
         <div className="relative flex h-[44vh] max-h-[420px] flex-col items-end justify-between">
           <div className="absolute right-[5px] top-0 h-full w-px bg-white/10" />
           <div ref={fill} className="absolute right-[5px] top-0 h-full w-px origin-top bg-gradient-to-b from-cyan to-violet" style={{ transform: "scaleY(0)" }} />
@@ -78,7 +78,7 @@ export default function Pipeline() {
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-[2px] bg-white/5 lg:hidden">
         <div ref={mFill} className="h-full origin-left bg-gradient-to-r from-cyan to-violet" style={{ transform: "scaleX(0)" }} />
       </div>
-      <div aria-hidden className="label pointer-events-none fixed bottom-4 left-4 z-[60] rounded-full border border-line bg-bg/70 px-3 py-1.5 !text-[0.6rem] backdrop-blur lg:hidden">
+      <div aria-hidden className="label pointer-events-none fixed bottom-[calc(var(--safe-b)+1rem)] left-[max(1rem,var(--safe-l))] z-[60] rounded-full border border-line bg-bg/70 px-3 py-1.5 !text-[0.6rem] backdrop-blur lg:hidden">
         <span className="text-cyan">{site.stages[active].label}</span> · {site.stages[active].caption}
       </div>
     </>
