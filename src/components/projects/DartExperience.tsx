@@ -145,7 +145,7 @@ export default function DartExperience() {
   };
 
   return (
-    <div ref={wrap} className="relative h-[clamp(520px,82vh,820px)] w-full" data-cursor="Drag">
+    <div ref={wrap} className="relative h-[clamp(32rem,calc(var(--svh)*82),51rem)] w-full" data-cursor="Drag">
       <div className="absolute inset-0" aria-hidden>
         <SceneCanvas fallback={<DartFallback />} camera={{ position: [0, 0, 15.5], fov: 40 }}>
           <DartScene ctl={ctl} colors={ACCENT} />

@@ -25,9 +25,11 @@ export default function Projects() {
           Execute · Selected work
         </Reveal>
         <div className="grid gap-8 md:gap-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-end">
-          <h2 id="work-title" className="section-title metal-text">
-            <SplitText text="Things I build, break & measure." />
-          </h2>
+          <div className="cq min-w-0">
+            <h2 id="work-title" className="section-title metal-text">
+              <SplitText text="Things I build, break & measure." />
+            </h2>
+          </div>
           <Reveal as="p" className="max-w-md text-mute lg:ml-auto">
             Four pieces of work and a set of future projects, each with its own small machine to play with. Ongoing and exploratory work is labeled as such, every demo says what it is, and real projects link to their code or live site.
           </Reveal>

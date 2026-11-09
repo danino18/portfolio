@@ -150,7 +150,7 @@ export default function Hero() {
           aria-label="Eyal Danino"
           data-hero-title
           className="display-xl metal-text fit-title"
-          style={{ ["--fs" as string]: "clamp(2.5rem, min(13.2vw, 26svh), 15rem)", ["--chars" as string]: 6, ["--fit-k" as string]: 1.08 }}
+          style={{ ["--fs" as string]: "clamp(2.5rem, min(13.2vw, 26svh), 15rem)", ["--chars" as string]: 6, ["--fit-k" as string]: 1.12 }}
         >
           <SplitText text="EYAL" trigger="manual" className="block" />
           <SplitText text="DANINO" trigger="manual" className="block" />

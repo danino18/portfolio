@@ -176,7 +176,6 @@ function YouTubeFrame({ media, accent, className }: { media: Extract<ProjectMedi
             src={src.current ?? undefined}
             className="absolute inset-0 h-full w-full"
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
             loading="lazy"
             referrerPolicy="strict-origin-when-cross-origin"
             onLoad={() => {

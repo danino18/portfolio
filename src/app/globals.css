@@ -147,9 +147,13 @@ button {
   line-height: 0.95;
   letter-spacing: -0.025em;
   /* Fluid, capped, and never wider per word than the content column. */
-  font-size: min(var(--fs-section), calc((100vw - 2 * var(--gutter)) / (var(--chars, 9) * 1.1)));
-  max-width: 14ch;
+  font-size: min(var(--fs-section), calc((100vw - 2 * var(--gutter)) / (var(--chars, 9) * 1.2)));
+  max-width: 16ch;
   text-wrap: balance;
+}
+/* Inside a container (e.g. a grid column), fit the column instead of the viewport. */
+.cq .section-title {
+  font-size: min(var(--fs-section), calc(100cqi / (var(--chars, 9) * 1.2)));
 }
 @media (max-width: 479px) {
   .section-title {
@@ -159,15 +163,15 @@ button {
 }
 
 /* ---------- Fit-to-container display type ----------
- * Long uppercase words in Syne 800 are ~1.1em per glyph. --chars is the
+ * Long uppercase words in Syne 800 average up to ~1.15em per glyph (W, M). --chars is the
  * longest word of the heading, so no single word can ever exceed the
- * container: the size is min(design size, width / (chars × 1.1)).
+ * container: the size is min(design size, width / (chars × k)).
  * `cq` makes an element the inline-size container the cqi units refer to. */
 .cq {
   container-type: inline-size;
 }
 .fit-title {
-  --fit-k: 1.1;
+  --fit-k: 1.18;
   font-size: min(var(--fs, 4rem), calc((100vw - 2 * var(--gutter)) / (var(--chars, 8) * var(--fit-k))));
   font-size: min(var(--fs, 4rem), calc(100cqi / (var(--chars, 8) * var(--fit-k))));
   text-wrap: balance;

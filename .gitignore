@@ -9,3 +9,5 @@ next-env.d.ts
 .claude
 
 .vercel
+test-results
+playwright-report

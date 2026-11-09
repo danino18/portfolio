@@ -226,10 +226,11 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
         s.tip.copy(HOME);
         STARTS.forEach(([x, z], i) => s.blocks[i].set(x, HB, z));
       }
-      if (!reduced.current) s.t += dt;
+      // Reduced motion: the same task cycle, played calmly instead of frozen.
+      s.t += dt * (reduced.current ? 0.4 : 1);
       const cycle = total + 2.2;
-      const tt = reduced.current ? total * 0.55 : s.t % cycle;
-      if (!reduced.current && s.t > cycle) s.t -= cycle;
+      const tt = s.t % cycle;
+      if (s.t > cycle) s.t -= cycle;
 
       if (tt >= total) {
         // dwell with the stack finished, then re-seat the blocks for the next loop

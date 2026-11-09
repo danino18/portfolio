@@ -84,7 +84,7 @@ export default function ArmExperience() {
 
   return (
     <div
-      className="relative h-[clamp(520px,80vh,800px)] w-full touch-pan-y"
+      className="relative h-[clamp(32rem,calc(var(--svh)*80),50rem)] w-full touch-pan-y"
       data-cursor={manual ? "Move" : "Drag"}
       onPointerDown={onDown}
       onPointerMove={onMove}

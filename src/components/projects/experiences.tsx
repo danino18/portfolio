@@ -15,7 +15,7 @@ function StageSkeleton({ height }: { height: string }) {
   );
 }
 
-const TALL = "clamp(480px,76vh,780px)";
+const TALL = "clamp(30rem,calc(var(--svh)*76),48rem)";
 
 /** One interactive experience per project kind, code-split and client-only. */
 export const experiences: Record<ProjectKind, ComponentType> = {
@@ -23,5 +23,5 @@ export const experiences: Record<ProjectKind, ComponentType> = {
   planner: dynamic(() => import("./PlannerExperience"), { ssr: false, loading: () => <StageSkeleton height="640px" /> }),
   maze: dynamic(() => import("./MazeExperience"), { ssr: false, loading: () => <StageSkeleton height={TALL} /> }),
   arm: dynamic(() => import("./ArmExperience"), { ssr: false, loading: () => <StageSkeleton height={TALL} /> }),
-  explorations: dynamic(() => import("./ExplorationsExperience"), { ssr: false, loading: () => <StageSkeleton height="460px" /> }),
+  explorations: dynamic(() => import("./ExplorationsExperience"), { ssr: false, loading: () => <StageSkeleton height="clamp(24rem,calc(var(--svh)*56),32rem)" /> }),
 };
