@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect } from "react";
 import Lenis from "lenis";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
@@ -16,7 +17,10 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
   useEffect(() => {
     setupGsap();
     sfx.restore();
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Mobile URL-bar show/hide changes innerHeight constantly; don't rebuild
+    // every trigger for it (real rotations/resizes still refresh below).
+    ScrollTrigger.config({ ignoreMobileResize: true });
+    const reduced = isReducedMotion();
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
     let lenis: Lenis | null = null;
@@ -52,14 +56,37 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
 
     if (finePointer) document.documentElement.classList.add("has-cursor");
 
-    const onLoad = () => ScrollTrigger.refresh();
+    // One debounced refresh for layout changes: window resize, rotation,
+    // late fonts, lazy sections growing the page.
+    let refreshT = 0;
+    const refresh = () => {
+      window.clearTimeout(refreshT);
+      refreshT = window.setTimeout(() => {
+        ScrollTrigger.refresh();
+        lenis?.resize();
+        publish();
+      }, 180);
+    };
+    const onLoad = () => refresh();
     window.addEventListener("load", onLoad);
-    document.fonts?.ready.then(() => ScrollTrigger.refresh());
-    const ro = new ResizeObserver(() => ScrollTrigger.refresh());
+    window.addEventListener("orientationchange", refresh);
+    document.fonts?.ready.then(refresh).catch(() => {});
+    let lastW = window.innerWidth;
+    let lastH = document.body.scrollHeight;
+    const ro = new ResizeObserver(() => {
+      const w = window.innerWidth;
+      const h = document.body.scrollHeight;
+      if (w === lastW && Math.abs(h - lastH) < 2) return;
+      lastW = w;
+      lastH = h;
+      refresh();
+    });
     ro.observe(document.body);
 
     return () => {
       ro.disconnect();
+      window.clearTimeout(refreshT);
+      window.removeEventListener("orientationchange", refresh);
       window.removeEventListener("load", onLoad);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", publish);

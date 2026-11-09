@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
@@ -19,7 +20,7 @@ export default function Magnetic({
     const el = ref.current;
     if (!el) return;
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (isReducedMotion()) return;
     const qx = gsap.quickTo(el, "x", { duration: 0.6, ease: "elastic.out(1, 0.5)" });
     const qy = gsap.quickTo(el, "y", { duration: 0.6, ease: "elastic.out(1, 0.5)" });
     const move = (e: PointerEvent) => {

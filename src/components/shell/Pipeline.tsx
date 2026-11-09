@@ -18,6 +18,7 @@ export default function Pipeline() {
   const fill = useRef<HTMLDivElement>(null);
   const packet = useRef<HTMLDivElement>(null);
   const mFill = useRef<HTMLDivElement>(null);
+  const chip = useRef<HTMLDivElement>(null);
   const home = pathname === "/";
 
   useEffect(() => {
@@ -31,14 +32,40 @@ export default function Pipeline() {
         onToggle: (self) => self.isActive && setActive(i),
       }),
     );
+    // Also derive the active stage from section positions every few frames:
+    // robust against fast jumps (anchor links, Home/End) that skip toggles.
+    let frame = 0;
+    let last = -1;
+    const els = site.stages.map((st) => document.getElementById(st.id));
     const update = () => {
+      if (++frame % 8 === 0) {
+        const line = window.innerHeight * 0.55;
+        let idx = 0;
+        els.forEach((el, i) => {
+          if (el && el.getBoundingClientRect().top <= line) idx = i;
+        });
+        if (idx !== last) {
+          last = idx;
+          setActive(idx);
+        }
+      }
       const p = scrollState.page;
       if (fill.current) fill.current.style.transform = `scaleY(${p})`;
       if (packet.current) packet.current.style.transform = `translate(-50%, ${p * 100}%)`;
       if (mFill.current) mFill.current.style.transform = `scaleX(${p})`;
     };
     gsap.ticker.add(update);
+    // Mobile stage chip: visible while scrolling only, so it never sits on top of content.
+    let hideT = 0;
+    const onScroll = () => {
+      chip.current?.setAttribute("data-on", "1");
+      window.clearTimeout(hideT);
+      hideT = window.setTimeout(() => chip.current?.removeAttribute("data-on"), 1400);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(hideT);
       gsap.ticker.remove(update);
       triggers.forEach((t) => t.kill());
     };
@@ -49,7 +76,7 @@ export default function Pipeline() {
   return (
     <>
       {/* Desktop: vertical pipeline */}
-      <nav aria-label="Page sections" className="pointer-events-none fixed right-5 top-1/2 z-[60] hidden -translate-y-1/2 lg:block">
+      <nav aria-label="Page sections" className="pointer-events-none fixed right-[max(1.25rem,var(--safe-r))] top-1/2 z-[60] hidden -translate-y-1/2 lg:block">
         <div className="relative flex h-[44vh] max-h-[420px] flex-col items-end justify-between">
           <div className="absolute right-[5px] top-0 h-full w-px bg-white/10" />
           <div ref={fill} className="absolute right-[5px] top-0 h-full w-px origin-top bg-gradient-to-b from-cyan to-violet" style={{ transform: "scaleY(0)" }} />
@@ -78,7 +105,11 @@ export default function Pipeline() {
       <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-[2px] bg-white/5 lg:hidden">
         <div ref={mFill} className="h-full origin-left bg-gradient-to-r from-cyan to-violet" style={{ transform: "scaleX(0)" }} />
       </div>
-      <div aria-hidden className="label pointer-events-none fixed bottom-4 left-4 z-[60] rounded-full border border-line bg-bg/70 px-3 py-1.5 !text-[0.6rem] backdrop-blur lg:hidden">
+      <div
+        ref={chip}
+        aria-hidden
+        className="label pointer-events-none fixed bottom-[calc(var(--safe-b)+1rem)] left-[max(1rem,var(--safe-l))] z-[60] translate-y-2 rounded-full border border-line bg-bg/80 px-3 py-1.5 !text-[0.6rem] opacity-0 backdrop-blur transition-[opacity,transform] duration-300 data-[on]:translate-y-0 data-[on]:opacity-100 lg:hidden"
+      >
         <span className="text-cyan">{site.stages[active].label}</span> · {site.stages[active].caption}
       </div>
     </>

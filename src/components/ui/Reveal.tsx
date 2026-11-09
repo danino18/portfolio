@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { useEffect, useRef, type ElementType } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
 
@@ -24,7 +25,7 @@ export default function Reveal({
     const el = ref.current;
     if (!el) return;
     setupGsap();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (isReducedMotion()) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         el,

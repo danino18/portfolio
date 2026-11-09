@@ -72,13 +72,28 @@ export default function ProjectSigil({ project }: { project: Project }) {
           <rect x="298" y="226" width="36" height="30" rx="3" fill="#38e8ff" stroke="none" opacity=".8" />
         </g>
       )}
-      {project.kind === "explorations" && (
+      {project.kind === "wifi" && (
         <g strokeWidth="1.6">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <path key={i} stroke={i % 2 ? b : a} opacity={1 - i * 0.15} style={flow} d={`M10 ${150 + (i - 2) * 22} ${Array.from({ length: 34 }, (_, k) => `L${10 + k * 11.5} ${150 + (i - 2) * 22 + Math.sin(k * 0.5 + i) * (10 + i * 4)}`).join(" ")}`} />
+          {[1, 2, 3, 4].map((i) => (
+            <path key={i} stroke={a} opacity={1 - i * 0.18} style={flow} d={`M${110 - i * 6} ${150 - i * 30} A ${i * 34} ${i * 34} 0 0 1 ${110 - i * 6} ${150 + i * 30}`} transform="rotate(180 110 150)" />
           ))}
-          <circle cx="200" cy="150" r="90" stroke="#ffffff22" />
-          <circle cx="200" cy="150" r="52" stroke="#ffffff22" />
+          <rect x="96" y="142" width="22" height="16" rx="3" fill={b} stroke="none" />
+          <circle cx="262" cy="118" r="11" stroke={a} />
+          <path d="M262 130 V188 M262 146 l-20 18 M262 146 l20 18 M262 188 l-16 30 M262 188 l16 30" stroke={a} />
+          <circle cx="262" cy="230" r="34" stroke={b} strokeDasharray="4 6" />
+        </g>
+      )}
+      {project.kind === "reef" && (
+        <g strokeWidth="1.6">
+          <path d="M40 90 L200 150 L40 210" stroke="#ffffff30" />
+          <path d="M360 90 L200 150 L360 210" stroke="#ffffff18" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <circle key={i} cx={70 + i * 65} cy={150} r={i === 4 ? 16 : 9} stroke={i === 4 ? a : b} fill={i === 4 ? a : "none"} opacity={0.5 + i * 0.12} />
+          ))}
+          <path d="M70 150 H330" stroke={b} style={flow} />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <circle key={`p${i}`} cx={60 + i * 18} cy={70 + (i % 3) * 14} r="3" fill={a} stroke="none" opacity={0.6} />
+          ))}
         </g>
       )}
     </svg>

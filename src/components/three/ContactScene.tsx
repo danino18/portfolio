@@ -157,7 +157,8 @@ export default function ContactScene({ lines, onReady }: { lines: string[]; onRe
   const { size, invalidate } = useThree();
   const aspect = size.width / size.height;
   const halfH = Math.tan((FOV * Math.PI) / 360) * CAM_Z;
-  const halfW = halfH * aspect;
+  // Quantized so a window drag doesn't resample the headline every frame.
+  const halfW = Math.round(halfH * aspect * 4) / 4;
   const N = scaleByTier(26000, tier);
   const geo = useRef<THREE.BufferGeometry>(null);
   const [fontKey, setFontKey] = useState(0);
@@ -166,7 +167,10 @@ export default function ContactScene({ lines, onReady }: { lines: string[]; onRe
   useEffect(() => {
     let alive = true;
     const fam = getComputedStyle(document.documentElement).getPropertyValue("--font-syne").trim() || "sans-serif";
-    document.fonts.load(`800 100px ${fam}`).finally(() => alive && setFontKey((k) => k + 1));
+    // A rejected font load (e.g. the local "Fallback" face) must not become an
+    // unhandled rejection; the headline is sampled either way.
+    const done = () => alive && setFontKey((k) => k + 1);
+    (document.fonts?.load(`800 100px ${fam}`) ?? Promise.resolve()).then(done, done);
     return () => {
       alive = false;
     };
@@ -214,9 +218,10 @@ export default function ContactScene({ lines, onReady }: { lines: string[]; onRe
     () => new THREE.ShaderMaterial({ uniforms, vertexShader: vert, fragmentShader: frag, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
     [uniforms],
   );
+  useEffect(() => () => mat.dispose(), [mat]);
 
   useFrame((state, dt) => {
-    if (!reduced) uniforms.uTime.value += Math.min(dt, 0.05);
+    uniforms.uTime.value += Math.min(dt, 0.05) * (reduced ? 0.35 : 1);
     const p = scrollState.contact;
     uniforms.uConverge.value = reduced ? 1 : smooth(0.04, 0.66, p);
     uniforms.uPx.value = state.gl.getPixelRatio();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isReducedMotion } from "./motion";
 
 export type DrawFn = (c: CanvasRenderingContext2D, w: number, h: number, t: number, dt: number) => void;
 
@@ -9,7 +10,8 @@ export type DrawFn = (c: CanvasRenderingContext2D, w: number, h: number, t: numb
  * while the canvas is on screen. With reduced motion it draws a single frame
  * (and again on `redraw()`).
  */
-export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number) => void) {
+export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number) => void, opts?: { maxDpr?: number }) {
+  const maxDpr = opts?.maxDpr ?? 2;
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
@@ -22,7 +24,9 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Reduced motion: these are small, self-contained toys, so they keep
+    // running (calmer) instead of freezing on a single frame.
+    const speed = isReducedMotion() ? 0.6 : 1;
     let w = 0;
     let h = 0;
     let raf = 0;
@@ -32,7 +36,7 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
 
     const fit = () => {
       const r = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       w = Math.max(1, Math.round(r.width));
       h = Math.max(1, Math.round(r.height));
       canvas.width = Math.round(w * dpr);
@@ -49,10 +53,11 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
     };
 
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      // rAF timestamps can precede performance.now() taken when the loop restarted: never step backwards.
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)) * speed;
       last = now;
       step(dt);
-      if (visible && !reduced) raf = requestAnimationFrame(loop);
+      if (visible && !document.hidden) raf = requestAnimationFrame(loop);
     };
 
     api.current.redraw = () => step(0.016);
@@ -66,6 +71,14 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
       }
     });
     io.observe(canvas);
+    const onVis = () => {
+      cancelAnimationFrame(raf);
+      if (visible && !document.hidden) {
+        last = performance.now();
+        raf = requestAnimationFrame(loop);
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
     const ro = new ResizeObserver(fit);
     ro.observe(canvas);
     fit();
@@ -73,7 +86,9 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { ref, redraw: () => api.current.redraw() };

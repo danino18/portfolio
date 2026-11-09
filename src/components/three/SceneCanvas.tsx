@@ -1,40 +1,59 @@
 "use client";
 
-import { Component, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
-import { Canvas, useFrame, type CanvasProps } from "@react-three/fiber";
-import { downgradeQuality, useQuality } from "@/lib/quality";
+import { Component, useCallback, useEffect, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Canvas, useFrame, type CanvasProps, type RootState } from "@react-three/fiber";
+import { noteContextLoss, reportFrameStats, useQuality } from "@/lib/quality";
 
-class SceneBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+class SceneBoundary extends Component<{ fallback: ReactNode; children: ReactNode; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.warn("[scene] falling back to static visual:", error.message, info.componentStack);
+    console.warn("[scene] falling back to 2D visual:", error.message, info.componentStack?.slice(0, 300));
+    this.props.onError();
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
 
-let downgrades = 0;
+/** True when the browser will hand out a working WebGL2 context right now. */
+function contextAvailable(): boolean {
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2");
+    if (!gl || gl.isContextLost()) return false;
+    const ok = !!gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
-/** Watches frame time and steps quality down (at most twice) if the GPU can't keep up. */
-function PerfGuard() {
-  const acc = useRef({ t: 0, n: 0 });
+/**
+ * Measures frame time in windows and reports to the quality controller.
+ * The first frames after mount (shader compilation, geometry upload) are
+ * ignored, as are frames while the tab is hidden.
+ */
+function PerfProbe() {
+  const acc = useRef({ n: 0, t: 0, min: 1, warm: 0 });
   useFrame((_, dt) => {
-    if (dt > 0.5 || document.hidden) return;
     const a = acc.current;
+    if (document.hidden || dt <= 0 || dt > 0.25) return;
+    if (a.warm < 50) {
+      a.warm++;
+      return;
+    }
+    a.n++;
     a.t += dt;
-    a.n += 1;
+    a.min = Math.min(a.min, dt);
     if (a.n >= 90) {
-      const avg = a.t / a.n;
-      a.t = 0;
+      reportFrameStats(a.t / a.n, a.min);
       a.n = 0;
-      if (avg > 0.028 && downgrades < 2) {
-        downgrades += 1;
-        downgradeQuality();
-      }
+      a.t = 0;
+      a.min = 1;
     }
   });
   return null;
@@ -42,7 +61,7 @@ function PerfGuard() {
 
 interface Props extends Omit<CanvasProps, "children" | "frameloop" | "dpr"> {
   children: ReactNode;
-  /** Shown for tier 0, before measurement, off-screen, and when the scene throws. */
+  /** Shown for tier 0, before measurement, off-screen, and when the scene throws. Should itself be animated. */
   fallback: ReactNode;
   className?: string;
   /** Mount the canvas only when within this margin of the viewport. */
@@ -54,13 +73,26 @@ interface Props extends Omit<CanvasProps, "children" | "frameloop" | "dpr"> {
 /**
  * Shared WebGL host. Lazily mounts a Canvas near the viewport, pauses its
  * render loop off-screen, unmounts it when far away (browsers cap WebGL
- * contexts), adapts DPR, and degrades to a static fallback on failure.
+ * contexts), adapts DPR, recovers from context loss and degrades to an
+ * animated fallback when WebGL is missing or a scene fails.
  */
 export default function SceneCanvas({ children, fallback, className = "", mountMargin = "60% 0px", alwaysOn, ...canvasProps }: Props) {
   const q = useQuality();
   const host = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [generation, setGeneration] = useState(0);
+  const [dead, setDead] = useState(false);
+  const losses = useRef(0);
+  const failures = useRef(0);
+  // A scene error right after a context loss (or a GPU reset) is often
+  // transient — the browser briefly refuses new contexts. Retry with
+  // backoff before settling on the 2D renderer for good.
+  const onSceneError = useCallback(() => {
+    failures.current += 1;
+    if (failures.current <= 3) window.setTimeout(() => setGeneration((g) => g + 1), 1200 * failures.current);
+    else setDead(true);
+  }, []);
 
   useEffect(() => {
     const el = host.current;
@@ -75,20 +107,62 @@ export default function SceneCanvas({ children, fallback, className = "", mountM
     };
   }, [mountMargin]);
 
-  const live = q !== null && q.tier > 0 && near;
-  const loop = q && !q.reducedMotion && (visible || alwaysOn) ? "always" : "demand";
+  const onCreated = useCallback(
+    (st: RootState) => {
+      const canvas = st.gl.domElement;
+      // A shader that fails to compile on some GPU/driver doesn't throw — it
+      // just draws nothing. Treat it like a crash: switch to the 2D renderer.
+      st.gl.debug.checkShaderErrors = true;
+      st.gl.debug.onShaderError = (gl, _program, vs, fs) => {
+        // A lost context makes every compile "fail"; that case is handled by the remount below.
+        if (gl.isContextLost()) return;
+        console.warn("[scene] shader failed on this GPU, using the 2D renderer:", gl.getShaderInfoLog(vs) || gl.getShaderInfoLog(fs));
+        setDead(true);
+      };
+      canvas.addEventListener(
+        "webglcontextlost",
+        (e) => {
+          e.preventDefault();
+          losses.current += 1;
+          noteContextLoss();
+          // Remount a fresh canvas once the browser hands out contexts again
+          // (right after a loss / GPU reset it can refuse for a moment).
+          if (losses.current > 2) {
+            setDead(true);
+            return;
+          }
+          let tries = 0;
+          const attempt = () => {
+            if (contextAvailable()) setGeneration((g) => g + 1);
+            else if (++tries < 8) window.setTimeout(attempt, 600 * tries);
+            else setDead(true);
+          };
+          window.setTimeout(attempt, 900);
+        },
+        { once: true },
+      );
+      canvasProps.onCreated?.(st);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const live = q !== null && q.tier > 0 && near && !dead;
+  const loop = q && (visible || alwaysOn) ? "always" : "never";
 
   return (
-    <div ref={host} className={`relative h-full w-full ${className}`}>
-      <SceneBoundary fallback={fallback}>
+    <div ref={host} className={`relative h-full w-full ${className}`} data-scene={live ? "webgl" : "fallback"}>
+      <SceneBoundary key={generation} fallback={fallback} onError={onSceneError}>
         {live && q ? (
           <Canvas
+            key={generation}
+            {...canvasProps}
             frameloop={loop}
             dpr={q.dpr}
-            gl={{ antialias: q.tier >= 2, alpha: true, powerPreference: "high-performance" }}
-            {...canvasProps}
+            gl={{ antialias: q.tier >= 2, alpha: true, powerPreference: q.tier >= 3 ? "high-performance" : "default", stencil: false }}
+            onCreated={onCreated}
           >
-            <PerfGuard />
+            <PerfProbe />
             {children}
           </Canvas>
         ) : (

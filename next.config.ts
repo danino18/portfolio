@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  async redirects() {
+    // The "explorations" page became the Wi-Fi Sensing future project.
+    return [{ source: "/projects/advanced-explorations", destination: "/projects/wifi-sensing", permanent: true }];
+  },
   async headers() {
     return [
       {

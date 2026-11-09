@@ -8,6 +8,7 @@ import Cursor from "@/components/shell/Cursor";
 import Nav from "@/components/shell/Nav";
 import Pipeline from "@/components/shell/Pipeline";
 import { PageTransitionProvider } from "@/components/shell/PageTransition";
+import { motionBootScript } from "@/lib/motion";
 
 const syne = Syne({ subsets: ["latin"], variable: "--font-syne", weight: ["600", "700", "800"], display: "swap" });
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -39,6 +40,7 @@ export const viewport: Viewport = {
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 const jsonLd = {
@@ -54,7 +56,11 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={activeLocale.lang} dir={activeLocale.dir} className={`${syne.variable} ${geist.variable} ${geistMono.variable}`}>
+    <html lang={activeLocale.lang} dir={activeLocale.dir} className={`${syne.variable} ${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Sets html[data-motion] before first paint (OS preference or the visitor's override). */}
+        <script dangerouslySetInnerHTML={{ __html: motionBootScript }} />
+      </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <a href="#main" className="skip-link">

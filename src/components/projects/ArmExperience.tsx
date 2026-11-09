@@ -84,7 +84,7 @@ export default function ArmExperience() {
 
   return (
     <div
-      className="relative h-[clamp(520px,80vh,800px)] w-full touch-pan-y"
+      className={`relative h-[clamp(32rem,calc(var(--svh)*80),50rem)] w-full ${manual ? "touch-none" : "touch-pan-y"}`}
       data-cursor={manual ? "Move" : "Drag"}
       onPointerDown={onDown}
       onPointerMove={onMove}
@@ -199,7 +199,7 @@ export default function ArmExperience() {
             >
               Gripper: {grip ? "closed" : "open"}
             </button>
-            <span className="label hidden !text-[0.58rem] lg:inline">Move the pointer over the scene</span>
+            <span className="label hidden !text-[0.58rem] lg:inline">Move the pointer (or drag) over the scene</span>
           </div>
         )}
       </div>

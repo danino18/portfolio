@@ -1,11 +1,13 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap, ScrollTrigger, setupGsap } from "@/lib/gsap";
 import { mulberry32 } from "@/lib/rng";
 import { sfx } from "@/lib/sfx";
 import type { DartControl } from "@/components/three/DartScene";
+import { DartCanvas2D } from "@/components/three/Canvas2DScenes";
 
 const SceneCanvas = dynamic(() => import("@/components/three/SceneCanvas"), { ssr: false, loading: () => <DartFallback /> });
 const DartScene = dynamic(() => import("@/components/three/DartScene"), { ssr: false });
@@ -115,7 +117,7 @@ export default function DartExperience() {
 
   useEffect(() => {
     setupGsap();
-    const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const r = isReducedMotion();
     setReduced(r);
     if (r) return;
     // First time the stage is on screen: hold on the helix, then transform it.
@@ -144,9 +146,9 @@ export default function DartExperience() {
   };
 
   return (
-    <div ref={wrap} className="relative h-[clamp(520px,82vh,820px)] w-full" data-cursor="Drag">
+    <div ref={wrap} className="relative h-[clamp(32rem,calc(var(--svh)*82),51rem)] w-full" data-cursor="Drag">
       <div className="absolute inset-0" aria-hidden>
-        <SceneCanvas fallback={<DartFallback />} camera={{ position: [0, 0, 15.5], fov: 40 }}>
+        <SceneCanvas fallback={<DartCanvas2D ctl={ctl} colors={ACCENT} />} camera={{ position: [0, 0, 15.5], fov: 40 }}>
           <DartScene ctl={ctl} colors={ACCENT} />
         </SceneCanvas>
       </div>

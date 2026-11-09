@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { mulberry32, clamp, lerp, smooth } from "@/lib/rng";
@@ -313,7 +313,7 @@ export default function HeroScene({ introSeconds = 3.6 }: { introSeconds?: numbe
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uIntro: { value: reduced ? 1 : 0 },
+      uIntro: { value: scrollState.intro },
       uPx: { value: 1 },
       uPointer: { value: new THREE.Vector3(99, 99, 0) },
       uPointerStrength: { value: 0 },
@@ -321,7 +321,7 @@ export default function HeroScene({ introSeconds = 3.6 }: { introSeconds?: numbe
       uViolet: { value: VIOLET },
       uFade: { value: 1 },
     }),
-    [reduced],
+    [],
   );
 
   const pointsMat = useMemo(
@@ -353,24 +353,31 @@ export default function HeroScene({ introSeconds = 3.6 }: { introSeconds?: numbe
     [uniforms],
   );
 
+  useEffect(() => () => {
+    pointsMat.dispose();
+    linesMat.dispose();
+    dieMat.dispose();
+  }, [pointsMat, linesMat, dieMat]);
+
   const aspect = size.width / size.height;
   const portrait = aspect < 0.9;
-  const fit = portrait ? clamp(aspect * 1.18, 0.5, 1) : clamp(aspect / 1.7, 0.7, 1.05);
+  // Composition per shape: tall phones get a smaller chip pushed up behind
+  // the title; short landscape phones a lower, wider one; ultrawide stays
+  // centred instead of growing without bound.
+  const shortLandscape = aspect > 1.6 && size.height < 520;
+  const fit = portrait ? clamp(aspect * 1.18, 0.5, 1) : shortLandscape ? 0.78 : clamp(aspect / 1.7, 0.7, 1.05);
 
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const u = uniforms;
-    if (!reduced) u.uTime.value += dt;
+    u.uTime.value += dt * (reduced ? 0.35 : 1);
 
-    // Intro assembly. Skipping accelerates it instead of cutting.
-    if (u.uIntro.value < 1) {
-      const speed = scrollState.introSkip ? 5 : 1;
-      u.uIntro.value = Math.min(1, u.uIntro.value + (Math.min(dtRaw, 0.25) * speed) / introSeconds);
-    }
-    scrollState.intro = u.uIntro.value;
+    // Intro assembly is driven by the Hero's wall clock (see Hero.tsx); ease
+    // toward it so a late-mounting canvas doesn't pop.
+    u.uIntro.value = u.uIntro.value < scrollState.intro ? Math.min(scrollState.intro, u.uIntro.value + Math.max(dt / Math.max(introSeconds, 0.5), (scrollState.intro - u.uIntro.value) * 0.2)) : scrollState.intro;
 
     const pt = scrollState.pointer;
-    if (coarse) {
+    if (coarse || reduced) {
       const t = u.uTime.value;
       pt.tx = Math.sin(t * 0.35) * 0.55;
       pt.ty = Math.cos(t * 0.27) * 0.35;
@@ -382,9 +389,10 @@ export default function HeroScene({ introSeconds = 3.6 }: { introSeconds?: numbe
     const g = group.current;
     if (!g) return;
     const tiltBase = lerp(-0.95, -0.08, smooth(0, 1, h));
-    g.rotation.x = tiltBase + pt.y * 0.07;
-    g.rotation.z = pt.x * -0.1 + h * 0.5;
-    g.rotation.y = pt.x * 0.08;
+    const m = reduced ? 0.4 : 1;
+    g.rotation.x = tiltBase + pt.y * 0.07 * m;
+    g.rotation.z = pt.x * -0.1 * m + h * 0.5;
+    g.rotation.y = pt.x * 0.08 * m;
     g.position.y = lerp(portrait ? 1.2 : 0.2, 0, h);
     g.scale.setScalar(fit * lerp(1, 1.55, smooth(0, 1, h)));
     u.uFade.value = 1 - smooth(0.55, 1, h);

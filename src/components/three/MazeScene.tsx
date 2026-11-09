@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { MazeGame } from "@/lib/mazeGame";
+import type { CoralGame } from "@/lib/coralGame";
 import { scrollState } from "@/lib/scrollState";
 import { clamp, lerp, mulberry32 } from "@/lib/rng";
 import { useQuality } from "@/lib/quality";
@@ -97,11 +97,11 @@ const screenFrag = /* glsl */ `
     vec2 uv = 0.5 + cc * (1.0 + 0.09 * r2);
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
     vec3 col = texture2D(uMap, uv).rgb;
-    vec2 px = vec2(1.0 / 160.0, 1.0 / 128.0);
-    vec3 g = texture2D(uMap, uv + vec2(px.x * 1.6, 0.0)).rgb + texture2D(uMap, uv - vec2(px.x * 1.6, 0.0)).rgb
-           + texture2D(uMap, uv + vec2(0.0, px.y * 1.6)).rgb + texture2D(uMap, uv - vec2(0.0, px.y * 1.6)).rgb;
-    col += g * 0.13;
-    float sl = 0.8 + 0.2 * sin(uv.y * 128.0 * 6.28318);
+    vec2 px = vec2(1.0 / 640.0, 1.0 / 480.0) * 3.0;
+    vec3 g = texture2D(uMap, uv + vec2(px.x, 0.0)).rgb + texture2D(uMap, uv - vec2(px.x, 0.0)).rgb
+           + texture2D(uMap, uv + vec2(0.0, px.y)).rgb + texture2D(uMap, uv - vec2(0.0, px.y)).rgb;
+    col = col * 0.92 + g * 0.06;
+    float sl = 0.86 + 0.14 * sin(uv.y * 240.0 * 6.28318);
     col *= sl;
     col *= 1.0 - r2 * 1.5;
     col *= 0.97 + 0.03 * sin(uTime * 55.0);
@@ -168,11 +168,11 @@ function Gate({ kind, position, rotation = 0 }: { kind: "and" | "or" | "not"; po
   );
 }
 
-export default function MazeScene({ game }: { game: MazeGame }) {
+export default function MazeScene({ game }: { game: CoralGame }) {
   const q = useQuality();
   const reduced = q?.reducedMotion ?? false;
   const root = useRef<THREE.Group>(null);
-  const { size, invalidate } = useThree();
+  const { size } = useThree();
   const traces = useMemo(buildTraces, []);
 
   const tex = useMemo(() => {
@@ -198,32 +198,58 @@ export default function MazeScene({ game }: { game: MazeGame }) {
   const screenMat = useMemo(() => new THREE.ShaderMaterial({ uniforms: u.screen, vertexShader: screenVert, fragmentShader: screenFrag }), [u]);
   const dieMat = useMemo(() => new THREE.ShaderMaterial({ uniforms: u.die, vertexShader: screenVert, fragmentShader: dieFrag }), [u]);
 
-  // Reduced-motion renders on demand: redraw whenever the game changes.
-  useEffect(() => game.subscribe(() => invalidate()), [game, invalidate]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      traceMat.dispose();
+      screenMat.dispose();
+      dieMat.dispose();
+    },
+    [tex, traceMat, screenMat, dieMat],
+  );
 
   const aspect = size.width / size.height;
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
-    const t = (u.trace.uTime.value += reduced ? 0 : dt);
+    const t = (u.trace.uTime.value += dt * (reduced ? 0.35 : 1));
     u.screen.uTime.value = t;
     u.die.uTime.value = t;
-    game.draw(state.clock.elapsedTime);
+    // The game advances on real time (it is gameplay, not decoration).
+    game.update(Math.min(dtRaw, 0.1));
+    game.draw();
     tex.needsUpdate = true;
 
     const since = (performance.now() - game.lastInput) / 1000;
-    u.trace.uBoost.value = Math.exp(-since * 2.2) * (game.lastInput ? 1 : 0);
-    u.screen.uFlash.value = game.state === "WIN" ? 0.5 + 0.5 * Math.sin(t * 12) : 0;
+    const steer = game.mazeVy !== 0 ? 0.6 : 0;
+    u.trace.uBoost.value = Math.max(steer, Math.exp(-since * 2.2) * (game.lastInput ? 1 : 0));
+    u.screen.uFlash.value = game.state === "HIT" ? 0.35 + 0.35 * Math.sin(t * 30) : 0;
 
+    // Framing: wide stages show the whole board; narrow/portrait stages
+    // move in on the monitor so the game stays readable on phones.
     const pt = scrollState.pointer;
-    const need = aspect < 1 ? 9.5 : 14.5;
-    const d = Math.max(9.5, need / (0.69 * Math.max(aspect, 0.3)));
-    const tx = 0;
-    const ty = 1.7;
-    const tz = 1.3;
-    const el = 0.5;
-    state.camera.position.set(tx + pt.x * 1.4, ty + Math.sin(el) * d + pt.y * 0.5, tz + Math.cos(el) * d);
+    const m = reduced ? 0.3 : 1;
+    const tanHalf = Math.tan(((38 / 2) * Math.PI) / 180);
+    let tx: number, ty: number, tz: number, el: number, d: number;
+    if (aspect >= 1.15) {
+      const need = 14.5;
+      d = Math.max(9.5, need / (0.69 * Math.max(aspect, 0.3)));
+      tx = 0;
+      ty = 1.7;
+      tz = 1.3;
+      el = 0.5;
+    } else {
+      // fit the 6.5 × 5.1 monitor with a margin
+      const dW = (6.5 * 0.5 * 1.12) / (tanHalf * aspect);
+      const dH = (5.1 * 0.5 * 1.3) / tanHalf;
+      d = Math.max(dW, dH);
+      tx = 0;
+      ty = 2.5;
+      tz = -0.1;
+      el = 0.16;
+    }
+    state.camera.position.set(tx + pt.x * 1.4 * m, ty + Math.sin(el) * d + pt.y * 0.5 * m, tz + Math.cos(el) * d);
     state.camera.lookAt(tx, ty, tz);
-    if (root.current) root.current.rotation.y = lerp(root.current.rotation.y, pt.x * 0.06, 0.05);
+    if (root.current) root.current.rotation.y = lerp(root.current.rotation.y, pt.x * 0.06 * m, 0.05);
     void clamp;
   });
 
@@ -292,7 +318,7 @@ export default function MazeScene({ game }: { game: MazeGame }) {
           <meshStandardMaterial color="#0b0f12" roughness={0.35} metalness={0.8} />
         </mesh>
         <mesh position={[0, 0, 0.21]}>
-          <planeGeometry args={[5.6, 4.48]} />
+          <planeGeometry args={[5.9, 4.425]} />
           <primitive object={screenMat} attach="material" />
         </mesh>
       </group>

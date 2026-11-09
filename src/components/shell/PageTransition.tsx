@@ -1,5 +1,6 @@
 "use client";
 
+import { isReducedMotion } from "@/lib/motion";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -52,7 +53,7 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
     (href: string, text?: string) => {
       const [path, hash] = href.split("#");
       const targetPath = path || pathname;
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduced = isReducedMotion();
 
       if (targetPath === pathname) {
         if (hash) scrollToId(hash);

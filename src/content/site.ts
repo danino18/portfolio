@@ -3,7 +3,7 @@ export const site = {
   shortName: "ED",
   title: "Eyal Danino — Computer Engineering, GPU Computing, Hardware & Robotics",
   description:
-    "Computer Engineering student at the Technion working across GPU computing, computer architecture, FPGA design and robotics. Selected projects, explorations and the systems thinking behind them.",
+    "Computer Engineering student at the Technion working across GPU computing, computer architecture, FPGA design and robotics. Selected projects, military innovation work and the systems thinking behind them.",
   role: "Computer Engineering Student at the Technion | GPU Computing | Hardware & Software | Robotics",
   headline: ["EYAL", "DANINO"],
   tagline: "ENGINEERING WHAT'S NEXT.",
@@ -30,7 +30,8 @@ export const site = {
     lead: "I'm a Computer Engineering student at the Technion who wants to understand computers all the way down.",
     paragraphs: [
       "I like following a single idea from the application, through the compiler and the runtime, past the memory hierarchy, into the logic gates that finally carry it out. The most interesting problems tend to sit on that boundary between software and silicon.",
-      "Right now that curiosity shows up as GPU kernels, an FPGA game written in SystemVerilog, a robot arm that has to see before it moves, and a handful of exploratory experiments I am still figuring out.",
+      "In the army I served as an innovation officer in a technological unit, where I founded and commanded the Reef, the Israeli Navy's innovation accelerator, helping service members turn field needs into products.",
+      "Right now that curiosity shows up as GPU kernels, a degree planner students actually use, an FPGA game written in SystemVerilog, a robot arm that has to see before it moves, and Wi-Fi sensing experiments I am still figuring out.",
     ],
     interests: [
       "GPU computing",
@@ -41,6 +42,7 @@ export const site = {
       "Physical AI",
       "Low-level optimization",
       "Entrepreneurship",
+      "Innovation leadership",
     ],
     /** Hardware-to-software metaphor, bottom (silicon) to top (product). */
     layers: [

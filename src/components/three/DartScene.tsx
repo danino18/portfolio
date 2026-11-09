@@ -193,7 +193,7 @@ export default function DartScene({ ctl, colors }: { ctl: MutableRefObject<DartC
   useFrame((state, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
     const u = uniforms;
-    if (!reduced) u.uTime.value += dt;
+    u.uTime.value += dt * (reduced ? 0.35 : 1);
     const target = ctl.current.target;
     u.uMorph.value = reduced ? target : lerp(u.uMorph.value, target, 1 - Math.exp(-dt * 2.2));
     if (reduced && Math.abs(u.uMorph.value - target) > 0.001) u.uMorph.value = target;
