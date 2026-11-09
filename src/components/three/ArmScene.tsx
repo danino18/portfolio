@@ -27,10 +27,14 @@ const D1 = 0.5;
 const HS = BASE_H + D1;
 const L1 = 1.275;
 const L2 = 1.176;
-const LT = 1.0;
+/** Wrist joint → centre of the closed fingers (matches the gripper geometry below). */
+const LT = 1.24;
 const BS = 0.28;
 const HB = BS / 2;
-const TIP_TO_BLOCK = 0.06;
+/** The tool point is the finger centre, so a held block's centre sits exactly there. */
+const TIP_TO_BLOCK = 0;
+/** Finger half-gap when closed on a block (block half-width + half finger thickness). */
+const FINGER_CLOSED = HB + 0.026;
 
 const STARTS: [number, number][] = [
   [1.35, 0.9],
@@ -38,7 +42,11 @@ const STARTS: [number, number][] = [
   [1.45, -0.2],
 ];
 const STACK: [number, number] = [1.75, -1.0];
-const HOME = new THREE.Vector3(1.2, 1.35, 0.1);
+const HOME = new THREE.Vector3(1.25, 1.0, 0.1);
+// Heights are chosen so every waypoint is inside the UR5e-like workspace
+// (the old ones were partly out of reach, so the solver clamped the pose
+// and the carried block drifted away from the gripper).
+const SAFE_Y = 0.78;
 
 interface Seg {
   to: THREE.Vector3;
@@ -52,16 +60,16 @@ interface Seg {
 function buildSequence(): Seg[] {
   const segs: Seg[] = [];
   STARTS.forEach(([bx, bz], k) => {
-    const sy = 0.2 + k * BS;
+    const sy = HB + k * BS;
     const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
-    segs.push({ to: v(bx, 1.0, bz), dur: 1.2, grip: 1, label: "Approach block", block: k, local: 0 });
-    segs.push({ to: v(bx, 0.2, bz), dur: 0.85, grip: 1, label: "Descend", block: k, local: 1 });
-    segs.push({ to: v(bx, 0.2, bz), dur: 0.45, grip: 0, label: "Grasp", block: k, local: 2 });
-    segs.push({ to: v(bx, 1.0, bz), dur: 0.75, grip: 0, label: "Lift", block: k, local: 3 });
-    segs.push({ to: v(STACK[0], 1.15, STACK[1]), dur: 1.3, grip: 0, label: "Transfer to stack", block: k, local: 4 });
+    segs.push({ to: v(bx, SAFE_Y, bz), dur: 1.2, grip: 1, label: "Approach block", block: k, local: 0 });
+    segs.push({ to: v(bx, HB, bz), dur: 0.85, grip: 1, label: "Descend", block: k, local: 1 });
+    segs.push({ to: v(bx, HB, bz), dur: 0.45, grip: 0, label: "Grasp", block: k, local: 2 });
+    segs.push({ to: v(bx, SAFE_Y, bz), dur: 0.75, grip: 0, label: "Lift", block: k, local: 3 });
+    segs.push({ to: v(STACK[0], SAFE_Y + 0.04, STACK[1]), dur: 1.3, grip: 0, label: "Transfer to stack", block: k, local: 4 });
     segs.push({ to: v(STACK[0], sy, STACK[1]), dur: 0.9, grip: 0, label: "Lower onto stack", block: k, local: 5 });
     segs.push({ to: v(STACK[0], sy, STACK[1]), dur: 0.45, grip: 1, label: "Release", block: k, local: 6 });
-    segs.push({ to: v(STACK[0], 1.1, STACK[1]), dur: 0.6, grip: 1, label: "Retreat", block: k, local: 7 });
+    segs.push({ to: v(STACK[0], SAFE_Y + 0.04, STACK[1]), dur: 0.6, grip: 1, label: "Retreat", block: k, local: 7 });
   });
   return segs;
 }
@@ -88,7 +96,9 @@ function solveIK(tip: THREE.Vector3) {
   const cosS = clamp((L1 * L1 + D * D - L2 * L2) / (2 * L1 * D), -1, 1);
   const q1 = Math.atan2(cy, cx) + Math.acos(cosS);
   const q3 = -Math.PI / 2 - q1 - q2;
-  return { q0, q1, q2, q3 };
+  // Forward kinematics of what was actually reached (differs from `tip` when clamped).
+  const reached = new THREE.Vector3(Math.cos(q0) * cx, cy - LT + HS, -Math.sin(q0) * cx);
+  return { q0, q1, q2, q3, reached };
 }
 
 const SKIN = "#aebdd3";
@@ -142,6 +152,7 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
     wasManual: false,
     held: -1,
     blocks: STARTS.map(([x, z]) => new THREE.Vector3(x, HB, z)),
+    reached: HOME.clone(),
     lastLabel: "",
     camAz: 1.2,
     camPol: 1.12,
@@ -179,23 +190,25 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
         s.wasManual = true;
         // blocks stay where the demo left them
       }
-      const pt = scrollState.pointer;
-      ray.setFromCamera(v2.set(pt.x, pt.y), state.camera);
-      plane.constant = -(0.2 + c.height * 1.1);
+      // Pointer relative to THIS canvas (the old code used the whole window,
+      // so the tool missed the cursor whenever the stage wasn't full-screen).
+      ray.setFromCamera(v2.set(state.pointer.x, state.pointer.y), state.camera);
+      const wantY = HB + c.height * 0.75;
+      plane.constant = -wantY;
       if (ray.ray.intersectPlane(plane, hit)) {
-        const r = clamp(Math.hypot(hit.x, hit.z), 1.1, 2.1);
+        const r = clamp(Math.hypot(hit.x, hit.z), 1.0, 2.0);
         const a = Math.atan2(hit.z, hit.x);
         s.tip.x = lerp(s.tip.x, Math.cos(a) * r, 1 - Math.exp(-dt * 8));
         s.tip.z = lerp(s.tip.z, Math.sin(a) * r, 1 - Math.exp(-dt * 8));
-        s.tip.y = lerp(s.tip.y, 0.2 + c.height * 1.1, 1 - Math.exp(-dt * 8));
       }
+      s.tip.y = lerp(s.tip.y, wantY, 1 - Math.exp(-dt * 8));
       const wantClosed = c.grip;
       s.grip = lerp(s.grip, wantClosed ? 0 : 1, 1 - Math.exp(-dt * 10));
       if (wantClosed && s.held < 0 && s.grip < 0.35) {
         let best = -1;
-        let bd = 0.4;
+        let bd = 0.3;
         s.blocks.forEach((b, i) => {
-          const d = Math.hypot(b.x - s.tip.x, b.z - s.tip.z) + Math.abs(b.y - (s.tip.y - TIP_TO_BLOCK)) * 0.8;
+          const d = Math.hypot(b.x - s.reached.x, b.z - s.reached.z) + Math.abs(b.y - (s.reached.y - TIP_TO_BLOCK)) * 0.8;
           if (d < bd) {
             bd = d;
             best = i;
@@ -216,7 +229,10 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
         s.held = -1;
         sfx.success();
       }
-      if (s.held >= 0) s.blocks[s.held].set(s.tip.x, s.tip.y - TIP_TO_BLOCK, s.tip.z);
+      if (s.held >= 0) {
+        const rc = solveIK(s.tip).reached;
+        s.blocks[s.held].set(rc.x, rc.y - TIP_TO_BLOCK, rc.z);
+      }
       c.phase = s.held >= 0 ? "Holding block" : "Manual control";
     } else {
       if (s.wasManual) {
@@ -256,6 +272,7 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
           s.lastLabel = seg.label;
         }
         // block states are a pure function of the sequence position
+        const rc = solveIK(s.tip).reached;
         seq.forEach((g, gi) => {
           if (g.local !== 0) return;
           const k = g.block;
@@ -263,22 +280,24 @@ export default function ArmScene({ ctl }: { ctl: MutableRefObject<ArmControl> })
           const holdEnd = gi + 5;
           const b = s.blocks[k];
           if (idx < holdStart) b.set(STARTS[k][0], HB, STARTS[k][1]);
-          else if (idx <= holdEnd) b.set(s.tip.x, s.tip.y - TIP_TO_BLOCK, s.tip.z);
+          else if (idx <= holdEnd) b.set(rc.x, rc.y - TIP_TO_BLOCK, rc.z);
           else b.set(STACK[0], HB + k * BS, STACK[1]);
         });
         void seg;
       }
     }
 
-    // Inverse kinematics → joint rotations
-    const { q0, q1, q2, q3 } = solveIK(s.tip);
+    // Inverse kinematics → joint rotations. Held blocks follow the pose that
+    // was actually reached, computed before the block update next frame.
+    const { q0, q1, q2, q3, reached } = solveIK(s.tip);
+    s.reached.copy(reached);
     if (pan.current) pan.current.rotation.y = q0;
     if (sh.current) sh.current.rotation.z = q1;
     if (el.current) el.current.rotation.z = q2;
     if (wr.current) wr.current.rotation.z = q3;
     const rollA = -q0;
     if (roll.current) roll.current.rotation.x = rollA;
-    const open = 0.12 + s.grip * 0.2;
+    const open = FINGER_CLOSED + s.grip * 0.16;
     if (fL.current) fL.current.position.z = open;
     if (fR.current) fR.current.position.z = -open;
     const deg = 180 / Math.PI;

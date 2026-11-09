@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { expectHeadingsFit, expectNoHorizontalOverflow, isMobileProject, isolate, scrollThrough, watchErrors } from "./helpers";
 
 const WIDTHS = [320, 375, 390, 430, 768, 820, 1024, 1280, 1440, 1920, 2560];
-const SLUGS = ["dart-cuda", "degree-planner", "controlled-maze-fpga", "physical-ai-robot-arm", "advanced-explorations"];
+const SLUGS = ["dart-cuda", "degree-planner", "controlled-maze-fpga", "physical-ai-robot-arm", "navy-reef", "wifi-sensing"];
 
 test.describe("responsive layout", () => {
   test.beforeEach(({}, info) => {

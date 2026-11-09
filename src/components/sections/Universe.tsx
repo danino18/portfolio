@@ -19,8 +19,8 @@ const FIELD: Record<Orientation, { w: number; h: number; font: number; pr: numbe
   m: { w: 60, h: 108, font: 1.75, pr: 1.8, nr: 1.1 },
 };
 
-const projPos = (o: Orientation, i: number): [number, number] =>
-  o === "d" ? [12 + i * 19, 63] : [8 + i * 11, 98];
+const projPos = (o: Orientation, i: number, n: number): [number, number] =>
+  o === "d" ? [10 + (i * 80) / Math.max(1, n - 1), 63] : [6 + (i * 48) / Math.max(1, n - 1), 98];
 
 function Constellation({ orientation, active, setActive }: { orientation: Orientation; active: string | null; setActive: (id: string | null) => void }) {
   const f = FIELD[orientation];
@@ -33,7 +33,7 @@ function Constellation({ orientation, active, setActive }: { orientation: Orient
     () =>
       [
         ...skillNodes.map((n) => ({ id: n.id, kind: "skill" as const, label: n.label, pos: (orientation === "d" ? n.d : n.m) as [number, number], color: groupColor[n.group], node: n })),
-        ...projects.map((p, i) => ({ id: p.slug, kind: "project" as const, label: p.titleLines.join(" "), pos: projPos(orientation, i), color: p.accent.a, node: null })),
+        ...projects.map((p, i) => ({ id: p.slug, kind: "project" as const, label: p.titleLines.join(" "), pos: projPos(orientation, i, projects.length), color: p.accent.a, node: null })),
       ],
     [orientation],
   );

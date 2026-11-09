@@ -46,7 +46,7 @@ Everything the site says lives in `src/content/`:
 | File | What it controls |
 | --- | --- |
 | `site.ts` | Name, taglines, About copy, hardware→software layers, contact text, links |
-| `projects.ts` | The five projects: copy, status labels, typed links (`live` / `github` / `video`, each with a note on how it was verified), real media, credits, accent colors and the *documented / in-progress / illustrative* fact list shown on each case-study page |
+| `projects.ts` | The six projects (incl. the Navy innovation accelerator case study, sourced from navyreef.netlify.app): copy, status labels, typed links (`live` / `github` / `video`, each with a note on how it was verified), real media, credits, accent colors and the *documented / in-progress / illustrative* fact list shown on each case-study page |
 | `mazeAssets.ts` | Sprite and font grids copied from the Controlled Maze repository (used by the browser version of the game) |
 | `skills.ts` | Technical-universe nodes, edges and which projects each topic appears in |
 | `locale.ts` | Language and text direction (`dir`) — add a Hebrew bundle and set `dir: "rtl"` |
@@ -78,7 +78,8 @@ Notable engineering decisions:
 - **Context loss.** `SceneCanvas` handles `webglcontextlost` by remounting a fresh canvas (twice at most, at a more conservative tier), then falls back to the 2D visual.
 - **Motion preference.** `lib/motion.ts` + an inline head script set `html[data-motion]` from `prefers-reduced-motion` or the visitor's choice in the nav ("Motion: full / reduced"). Reduced motion removes smooth-scroll inertia, pinning, zooms, parallax, flying letters and the route wipe, but scenes keep a slow ambient animation instead of freezing.
 - **Lazy, bounded WebGL.** `SceneCanvas` mounts a canvas only near the viewport, pauses it off-screen and unmounts it when far away, keeping within browser WebGL-context limits. Scenes are code-split with `next/dynamic`.
-- **Fallbacks.** No WebGL, scene errors (error boundary), or tier 0 render animated CSS/SVG/2D-canvas visuals (the maze game and the Wi-Fi visualization stay fully interactive in 2D).
+- **Fallbacks.** No WebGL, a scene error, or a shader that fails to compile on a given GPU (caught via `renderer.debug.onShaderError`) switch that scene to a Canvas-2D renderer: the hero chip and the DART helix → thread-grid morph have full 2D versions (`three/Canvas2DScenes.tsx`) with the same intro, scroll response and pointer glow; the maze game and the Wi-Fi visualization stay fully interactive in 2D. Scene errors right after a context loss are retried with backoff.
+- **React-owned DOM.** Never remove or re-parent nodes React rendered: the hero is pinned inside a wrapper (GSAP's pin-spacer would otherwise break page navigation) and the boot veil is hidden, not removed.
 - **Responsive type.** Display headings use `.fit-title` / `.section-title`: a fluid `clamp()` size that is also capped by the container width divided by the longest word (`--chars`, via container query units), so no word can overflow at any width.
 - **Honest 3D.** The robot arm solves inverse kinematics live in the browser. The Controlled Maze demo (`lib/coralGame.ts`) follows the real game's rules and parameters — an autonomous bird, the player moving every coral opening together — with the project's own sprites, labeled as a browser approximation. The Wi-Fi sensing view (`lib/wifiSim.ts`) is a conceptual visualization with simulated signals.
 - **Accessibility.** Semantic landmarks, a skip link, keyboard-operable demos (arrow keys move planner courses and the maze), `aria-live` status for the planner, split text exposed through `aria-label`, and visible focus rings.

@@ -47,15 +47,52 @@ test("Controlled Maze: the player steers the coral; the bird flies on its own", 
   expect(errors).toEqual([]);
 });
 
-test("Future projects: Wi-Fi Sensing is the first project, labeled conceptual", async ({ page }) => {
+test("Wi-Fi Sensing is the future project, labeled conceptual; laundry and e-nose are gone", async ({ page }) => {
   await isolate(page);
-  await page.goto("/projects/advanced-explorations");
-  const tabs = page.getByRole("tablist", { name: /future projects/i }).getByRole("tab");
-  await expect(tabs.first()).toContainText(/wi-fi sensing/i);
-  await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText(/conceptual visualization/i).first()).toBeVisible();
-  await tabs.nth(1).click();
-  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await page.goto("/");
+  await expect(page.locator("#wifi-sensing")).toContainText(/future project/i);
+  await expect(page.locator("#wifi-sensing").getByText(/conceptual visualization/i).first()).toBeVisible();
+  await expect(page.getByText(/laundry|electronic nose|e-nose/i)).toHaveCount(0);
+});
+
+test("Case study navigation opens the project page without crashing", async ({ page }) => {
+  await isolate(page);
+  const errors = watchErrors(page);
+  await page.goto("/");
+  await page.waitForTimeout(1500);
+  await page.locator("#dart-cuda").scrollIntoViewIfNeeded();
+  await page.locator("#dart-cuda").getByRole("link", { name: /case study/i }).click();
+  await expect(page).toHaveURL(/\/projects\/dart-cuda$/, { timeout: 10_000 });
+  await expect(page.locator("h1#project-title")).toBeVisible();
+  await page.getByRole("link", { name: /all work/i }).click();
+  await expect(page).toHaveURL(/\/(#work)?$/, { timeout: 10_000 });
+  await expect(page.locator("h1").first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("The Reef: stages are selectable and sourced", async ({ page }) => {
+  await isolate(page);
+  await page.goto("/projects/navy-reef");
+  const tabs = page.getByRole("tablist", { name: /program stages/i }).getByRole("tab");
+  await expect(tabs).toHaveCount(5);
+  await tabs.nth(3).click();
+  await expect(page.locator("#reef-stage")).toContainText(/shark tank/i);
+  await expect(page.getByText(/innovation officer in a technological unit/i).first()).toBeVisible();
+});
+
+test("Robotic arm: manual mode follows the pointer over the canvas", async ({ page }, info) => {
+  test.skip(isMobileProject(info.project.name), "pointer hover");
+  await isolate(page);
+  const errors = watchErrors(page);
+  await page.goto("/projects/physical-ai-robot-arm");
+  const stage = page.locator("[data-cursor=Drag], [data-cursor=Move]").first();
+  await stage.scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: /take manual control/i }).click();
+  const box = (await stage.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.6);
+  await page.waitForTimeout(1200);
+  await expect(page.getByText(/manual control/i).first()).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 test("robotic arm: real video embed is lazy, muted, inline, with a fallback link", async ({ page }) => {

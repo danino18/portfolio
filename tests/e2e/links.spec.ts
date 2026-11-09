@@ -7,7 +7,8 @@ const EXPECTED: Record<string, string[]> = {
   "degree-planner": ["https://ee-planer.vercel.app"],
   "controlled-maze-fpga": ["https://github.com/danino18/basic_controled_mazed"],
   "physical-ai-robot-arm": ["https://github.com/danino18/physAI-arm-ex", "https://youtube.com/shorts/yq8GpWCdJY8"],
-  "advanced-explorations": [],
+  "navy-reef": ["https://navyreef.netlify.app"],
+  "wifi-sensing": [],
 };
 
 test("project links on the home page are exactly the verified ones", async ({ page }) => {
@@ -48,6 +49,19 @@ test("no placeholder or unsafe external links anywhere", async ({ page }) => {
       }
     }
   }
+});
+
+test("Case study appears only where there is no repository or live site", async ({ page }) => {
+  await isolate(page);
+  await page.goto("/");
+  for (const [slug, hrefs] of Object.entries(EXPECTED)) {
+    await expect(page.locator(`#${slug}`).getByRole("link", { name: /case study/i }), slug).toHaveCount(hrefs.length ? 0 : 1);
+  }
+});
+
+test("old explorations URL redirects to Wi-Fi Sensing", async ({ page }) => {
+  await page.goto("/projects/advanced-explorations");
+  await expect(page).toHaveURL(/\/projects\/wifi-sensing$/);
 });
 
 test("internal routes resolve", async ({ request }) => {

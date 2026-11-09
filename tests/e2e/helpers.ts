@@ -41,7 +41,7 @@ export async function expectHeadingsFit(page: Page) {
   const bad = await page.evaluate(() => {
     const vw = document.documentElement.clientWidth;
     const out: string[] = [];
-    document.querySelectorAll<HTMLElement>("h1, h2, h3, .fit-title, .section-title").forEach((el) => {
+    document.querySelectorAll<HTMLElement>("h1, h2, h3, h4, .fit-title, .section-title, [role=tabpanel] p").forEach((el) => {
       const r = el.getBoundingClientRect();
       if (r.width < 4 || el.closest(".sr-only") || el.classList.contains("sr-only")) return;
       const s = getComputedStyle(el);
@@ -54,6 +54,20 @@ export async function expectHeadingsFit(page: Page) {
     return out;
   });
   expect(bad, "headings must not be clipped or overflow").toEqual([]);
+  const clipped = await page.evaluate(() => {
+    const out: string[] = [];
+    document.querySelectorAll<HTMLElement>(".stage").forEach((st) => {
+      const r = st.getBoundingClientRect();
+      if (r.width < 4) return;
+      st.querySelectorAll<HTMLElement>("p, h4, [role=tablist]").forEach((el) => {
+        const e = el.getBoundingClientRect();
+        if (e.width > 0 && el.getAttribute("role") !== "tablist" && e.right > r.right + 2) out.push(`${(el.textContent || "").trim().slice(0, 40)} (${Math.round(e.right)} > ${Math.round(r.right)})`);
+        if (el.getAttribute("role") === "tablist" && el.parentElement && el.parentElement.getBoundingClientRect().right > r.right + 2) out.push("tab container wider than its stage");
+      });
+    });
+    return out;
+  });
+  expect(clipped, "text inside a stage must not be cut off by the stage").toEqual([]);
 }
 
 /** Fraction of non-dark pixels in an element's on-screen pixels (canvas-agnostic). */

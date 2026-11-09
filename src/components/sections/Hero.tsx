@@ -10,6 +10,7 @@ import { site } from "@/content/site";
 import SplitText from "@/components/ui/SplitText";
 import Magnetic from "@/components/ui/Magnetic";
 import HeroFallback from "@/components/three/HeroFallback";
+import { HeroCanvas2D } from "@/components/three/Canvas2DScenes";
 import { ArrowIcon, ExternalIcon, GitHubIcon, LinkedInIcon } from "@/components/ui/Icons";
 
 const SceneCanvas = dynamic(() => import("@/components/three/SceneCanvas"), { ssr: false, loading: () => <HeroFallback /> });
@@ -48,14 +49,14 @@ export default function Hero() {
 
       let tl: gsap.core.Timeline | null = null;
       if (reduced) {
-        veil?.remove();
+        if (veil) veil.style.display = "none";
         setIntroDone(true);
       } else {
         gsap.set(chars, { yPercent: 115, rotate: 5 });
         gsap.set(tag, { yPercent: 115, opacity: 0 });
         gsap.set(fades, { y: 24, opacity: 0 });
         tl = gsap.timeline({ delay: 0.15 });
-        if (veil) tl.to(veil, { opacity: 0, duration: 0.45, ease: "power2.out", onComplete: () => veil.remove() }, 0);
+        if (veil) tl.to(veil, { opacity: 0, duration: 0.45, ease: "power2.out", onComplete: () => { veil.style.display = "none"; } }, 0);
         tl.to(chars, { yPercent: 0, rotate: 0, duration: 1.3, ease: "expo.out", stagger: 0.05 }, dur * 0.42)
           .to(tag, { yPercent: 0, opacity: 1, duration: 0.9, ease: "expo.out", stagger: 0.018 }, dur * 0.42 + 0.55)
           .to(fades, { y: 0, opacity: 1, duration: 1, ease: "expo.out", stagger: 0.12 }, dur * 0.42 + 0.9);
@@ -124,10 +125,15 @@ export default function Hero() {
     (root.current as (HTMLElement & { _skip?: () => void }) | null)?._skip?.();
   };
 
+  // The outer div is the node React owns and removes on navigation. GSAP's pin
+  // wraps the <section> in a pin-spacer; if the section itself were the
+  // component root, React would crash with "removeChild … not a child" when
+  // leaving the page (that is what broke the "Case study" links).
   return (
+    <div className="relative">
     <section id="top" ref={root} aria-label="Introduction" className="relative h-[calc(var(--svh)*100)] min-h-[34rem] overflow-hidden [@media(orientation:landscape)_and_(max-height:520px)]:min-h-[28rem]">
       <div className="absolute inset-0" aria-hidden>
-        <SceneCanvas fallback={<HeroFallback />} camera={{ position: [0, 0, 12], fov: 38, near: 0.1, far: 80 }} alwaysOn>
+        <SceneCanvas fallback={<HeroCanvas2D />} camera={{ position: [0, 0, 12], fov: 38, near: 0.1, far: 80 }} alwaysOn>
           <HeroScene introSeconds={introSeconds} />
         </SceneCanvas>
       </div>
@@ -231,5 +237,6 @@ export default function Hero() {
         </button>
       )}
     </section>
+    </div>
   );
 }

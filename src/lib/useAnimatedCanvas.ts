@@ -10,7 +10,8 @@ export type DrawFn = (c: CanvasRenderingContext2D, w: number, h: number, t: numb
  * while the canvas is on screen. With reduced motion it draws a single frame
  * (and again on `redraw()`).
  */
-export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number) => void) {
+export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number) => void, opts?: { maxDpr?: number }) {
+  const maxDpr = opts?.maxDpr ?? 2;
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
@@ -35,7 +36,7 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
 
     const fit = () => {
       const r = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
       w = Math.max(1, Math.round(r.width));
       h = Math.max(1, Math.round(r.height));
       canvas.width = Math.round(w * dpr);
@@ -87,6 +88,7 @@ export function useAnimatedCanvas(draw: DrawFn, onResize?: (w: number, h: number
       ro.disconnect();
       document.removeEventListener("visibilitychange", onVis);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { ref, redraw: () => api.current.redraw() };

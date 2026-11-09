@@ -5,9 +5,9 @@
  * Never add a repository or live URL that does not exist: leave `links` empty instead.
  */
 
-export type ProjectKind = "dart" | "planner" | "maze" | "arm" | "explorations";
+export type ProjectKind = "dart" | "planner" | "maze" | "arm" | "reef" | "wifi";
 
-export type ProjectStatus = "ongoing-research" | "project" | "workshop" | "exploratory";
+export type ProjectStatus = "ongoing-research" | "project" | "workshop" | "service" | "exploratory";
 
 export type FactState = "built" | "in-progress" | "direction" | "exploratory" | "illustrative";
 
@@ -262,35 +262,74 @@ export const projects: Project[] = [
     interaction: "Drag to orbit the cell. Switch to manual mode to move the tool yourself.",
   },
   {
-    slug: "advanced-explorations",
-    kind: "explorations",
+    slug: "navy-reef",
+    kind: "reef",
     index: "05",
-    title: "Future Projects & Explorations",
-    titleLines: ["FUTURE", "PROJECTS"],
-    tagline: "Questions I am still working out, shown as experiments.",
-    status: "exploratory",
-    statusLabel: "Future & experimental",
+    title: "The Reef: Israeli Navy Innovation Accelerator",
+    titleLines: ["THE REEF", "NAVY"],
+    tagline: "A startup accelerator inside the Navy, for the people who serve in it.",
+    status: "service",
+    statusLabel: "Military service · Innovation officer",
     summary:
-      "Future and experimental work, led by Wi-Fi Sensing: human detection using ESP32 devices and AI. Also household robotics and electronic-nose sensor arrays.",
+      "In the army I served as an innovation officer in a technological unit. There I founded and commanded “The Reef” (הריף), the Israeli Navy's innovation accelerator: service members take an operational, technological or organizational challenge from idea to MVP and an in-house prototype.",
     description: [
-      "Wi-Fi Sensing: Human Detection Using ESP32 and AI. Every Wi-Fi packet carries channel state information (CSI): how each subcarrier's amplitude and phase were changed by the room on the way. A person moving through the room changes those reflections. The project explores whether ESP32 devices and machine learning can turn CSI into indoor motion detection and localization.",
-      "The long-term research goal is to explore whether Wi-Fi signals can help reconstruct more about a person: position, movement, and potentially body shape. That is a research question, not a result.",
-      "Two more directions follow it: robots that handle soft, deformable things like laundry, and arrays of gas sensors combined with machine learning, an electronic nose.",
-      "These are future and experimental projects, not finished products. Nothing here is a validated system and there are no claimed results. Each visual is a conceptual visualization or toy simulation, and is labeled that way.",
+      "The Reef is an excellence and innovation program of the Israeli Navy. Its aim is to grow its participants' ability to lead change and to give them entrepreneurial skills, so that ideas from inside the Navy can move it forward.",
+      "The accelerator connects strategic challenges with breakthrough products available on the market, for integration. Challenges come from two directions: bottom-up initiatives from across the Navy and top-down challenges from senior command. Each selected challenge is worked toward an MVP, an in-house prototype demonstrator and, when it is mature enough, a full development project.",
+      "Challenges are screened by their impact on the Navy and the IDF, their fit for fast, small-scale procurement, how many people they affect, how certain the demand is and how feasible the technology is. Selected teams then learn inventive and systematic thinking, teamwork, market research and customer interviews, business modelling, flow charts and user experience, MVP planning, risk management and Lean Product Design, and finally pitch to a “shark tank” of senior officers from the receiving unit and the Navy's senior command.",
+      "Every team combines a Champion who owns the need from the field, a Maker (CTO) with hands-on technical skills, a team lead (CEO) and a program manager (PMO), supported by mentors including Navy alumni from Israeli tech.",
+      "“I founded the Reef because I wanted every service member in the Navy to be able to go through an entrepreneurial journey, to express themselves and to make a meaningful contribution to the Navy and to Israel's security.” (translated from the program site)",
     ],
-    topics: ["ESP32 Wi-Fi CSI sensing", "Indoor motion detection & localization", "Machine learning", "Household robotics", "Deformable-object manipulation", "Sensor arrays"],
-    stack: ["ESP32", "Wi-Fi CSI", "Machine learning", "Robotics", "Sensor arrays"],
+    topics: ["Innovation program design", "Lean Startup", "Lean Product Design", "MVP & prototyping", "Shark-tank pitching", "Team building", "Mentor network"],
+    stack: ["Leadership", "Lean Startup", "Lean Product Design", "Product discovery", "MVP"],
+    accent: { a: "#ffcf5a", b: "#3ec7ff" },
+    links: [
+      {
+        kind: "live",
+        label: "Visit program website",
+        href: "https://navyreef.netlify.app",
+        verified:
+          "2026-11-09: HTTP 200; the page names Eyal Danino as founder and commander of the Reef. Content of this case study is taken from it. The website itself was built by team member Shon Koniavsky.",
+      },
+    ],
+    credit: "Run with a team and mentors listed on the program site. The program website was built by the Reef's maker, Shon Koniavsky.",
+    facts: [
+      { state: "built", text: "Innovation officer in a technological unit during military service." },
+      { state: "built", text: "Founder and commander of the Reef, the Israeli Navy's innovation accelerator (per the program site)." },
+      { state: "built", text: "Program stages: challenge intake (bottom-up and top-down), screening, acceleration (Lean Startup, LPD, MVP) and a shark-tank pitch to senior command." },
+      { state: "built", text: "Teams of Champion, Maker (CTO), team lead (CEO) and program manager (PMO), supported by mentors." },
+      { state: "built", text: "Also created the podcast “Ratzim Kadima — the path for young entrepreneurs” (per the program site)." },
+      { state: "illustrative", text: "The animation shows the program's process as described on its site. No real challenges, units or projects are shown." },
+    ],
+    demoNote: "Illustrative diagram of the program's process — no real challenges, units or projects.",
+    interaction: "Watch ideas flow from challenge to MVP, or pick a stage to read what happens there.",
+  },
+  {
+    slug: "wifi-sensing",
+    kind: "wifi",
+    index: "06",
+    title: "Wi-Fi Sensing: Human Detection Using ESP32 and AI",
+    titleLines: ["WI-FI", "SENSING"],
+    tagline: "Can the Wi-Fi already in a room tell where a person is?",
+    status: "exploratory",
+    statusLabel: "Future project · experimental",
+    summary:
+      "A future project exploring indoor human motion detection and localization from Wi-Fi channel state information (CSI), using ESP32 devices and machine learning.",
+    description: [
+      "Every Wi-Fi packet carries channel state information (CSI): how each subcarrier's amplitude and phase were changed by the room on the way. A person moving through the room changes those reflections. The project explores whether ESP32 devices and machine learning can turn CSI into indoor motion detection and localization.",
+      "The long-term research goal is to explore whether Wi-Fi signals can help reconstruct more about a person: position, movement, and potentially body shape. That is a research question, not a result.",
+      "This is future and experimental work, not a finished product. Nothing here is a validated system and there are no claimed results. The visual is a conceptual research visualization with simulated signals, and is labeled that way.",
+    ],
+    topics: ["ESP32 Wi-Fi CSI sensing", "Indoor motion detection", "Localization", "Signal processing", "Machine learning"],
+    stack: ["ESP32", "Wi-Fi CSI", "Machine learning"],
     accent: { a: "#ff6bd6", b: "#7fe8ff" },
     links: [],
     facts: [
       { state: "exploratory", text: "Wi-Fi Sensing: human detection using ESP32 devices and AI — indoor motion detection and localization from channel state information." },
       { state: "direction", text: "Long-term research goal: whether Wi-Fi signals can help estimate position, movement and potentially body shape." },
-      { state: "exploratory", text: "Robotic laundry manipulation and household robotics." },
-      { state: "exploratory", text: "Electronic-nose sensor arrays and AI." },
-      { state: "illustrative", text: "The Wi-Fi visual is a conceptual research visualization with simulated signals; the other two are toy simulations. None are measurements or results." },
+      { state: "illustrative", text: "The visual is a conceptual research visualization with simulated signals. It is not a measurement or a result." },
     ],
-    demoNote: "Conceptual research visualization & toy simulations — simulated signals, not measurements or a validated system.",
-    interaction: "Wi-Fi sensing first: move through the room. Then try the cloth and the electronic nose.",
+    demoNote: "Conceptual research visualization — simulated signals, not measurements or a validated system.",
+    interaction: "Move the pointer (or tap) in the room to guide the person and watch the pipeline react.",
   },
 ];
 

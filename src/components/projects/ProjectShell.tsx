@@ -19,6 +19,7 @@ const statusTone: Record<Project["status"], string> = {
   "ongoing-research": "border-cyan/50 text-cyan",
   project: "border-white/25 text-ink",
   workshop: "border-signal/50 text-signal",
+  service: "border-[#ffcf5a]/50 text-[#ffdf8a]",
   exploratory: "border-[#ff6bd6]/50 text-[#ff9be6]",
 };
 
@@ -112,17 +113,20 @@ export default function ProjectShell({
 
           <Reveal className="mt-8 flex flex-wrap items-center gap-3">
             <ProjectLinks project={p} />
-            <Magnetic>
-              <TransitionLink
-                href={`/projects/${p.slug}`}
-                label={p.title}
-                data-cursor="Open"
-                className="group inline-flex items-center gap-3 rounded-full border px-5 py-3 font-mono text-[0.72rem] uppercase tracking-[0.12em] transition-colors hover:bg-white/5"
-                style={{ borderColor: `${p.accent.a}88`, color: p.accent.a }}
-              >
-                Case study <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </TransitionLink>
-            </Magnetic>
+            {/* The case-study page is the destination only when there is no repository or live site to go to. */}
+            {p.links.length === 0 && (
+              <Magnetic>
+                <TransitionLink
+                  href={`/projects/${p.slug}`}
+                  label={p.title}
+                  data-cursor="Open"
+                  className="group inline-flex items-center gap-3 rounded-full border px-5 py-3 font-mono text-[0.72rem] uppercase tracking-[0.12em] transition-colors hover:bg-white/5"
+                  style={{ borderColor: `${p.accent.a}88`, color: p.accent.a }}
+                >
+                  Case study <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </TransitionLink>
+              </Magnetic>
+            )}
           </Reveal>
         </div>
       </div>

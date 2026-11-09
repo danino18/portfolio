@@ -23,5 +23,6 @@ export const experiences: Record<ProjectKind, ComponentType> = {
   planner: dynamic(() => import("./PlannerExperience"), { ssr: false, loading: () => <StageSkeleton height="640px" /> }),
   maze: dynamic(() => import("./MazeExperience"), { ssr: false, loading: () => <StageSkeleton height={TALL} /> }),
   arm: dynamic(() => import("./ArmExperience"), { ssr: false, loading: () => <StageSkeleton height={TALL} /> }),
-  explorations: dynamic(() => import("./ExplorationsExperience"), { ssr: false, loading: () => <StageSkeleton height="clamp(24rem,calc(var(--svh)*56),32rem)" /> }),
+  reef: dynamic(() => import("./ReefExperience"), { ssr: false, loading: () => <StageSkeleton height="clamp(30rem,calc(var(--svh)*70),42rem)" /> }),
+  wifi: dynamic(() => import("./WifiSensing"), { ssr: false, loading: () => <StageSkeleton height="clamp(36rem,calc(var(--svh)*82),50rem)" /> }),
 };

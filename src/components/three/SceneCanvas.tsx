@@ -18,6 +18,20 @@ class SceneBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
+/** True when the browser will hand out a working WebGL2 context right now. */
+function contextAvailable(): boolean {
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2");
+    if (!gl || gl.isContextLost()) return false;
+    const ok = !!gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Measures frame time in windows and reports to the quality controller.
  * The first frames after mount (shader compilation, geometry upload) are
@@ -70,6 +84,15 @@ export default function SceneCanvas({ children, fallback, className = "", mountM
   const [generation, setGeneration] = useState(0);
   const [dead, setDead] = useState(false);
   const losses = useRef(0);
+  const failures = useRef(0);
+  // A scene error right after a context loss (or a GPU reset) is often
+  // transient — the browser briefly refuses new contexts. Retry with
+  // backoff before settling on the 2D renderer for good.
+  const onSceneError = useCallback(() => {
+    failures.current += 1;
+    if (failures.current <= 3) window.setTimeout(() => setGeneration((g) => g + 1), 1200 * failures.current);
+    else setDead(true);
+  }, []);
 
   useEffect(() => {
     const el = host.current;
@@ -87,15 +110,34 @@ export default function SceneCanvas({ children, fallback, className = "", mountM
   const onCreated = useCallback(
     (st: RootState) => {
       const canvas = st.gl.domElement;
+      // A shader that fails to compile on some GPU/driver doesn't throw — it
+      // just draws nothing. Treat it like a crash: switch to the 2D renderer.
+      st.gl.debug.checkShaderErrors = true;
+      st.gl.debug.onShaderError = (gl, _program, vs, fs) => {
+        // A lost context makes every compile "fail"; that case is handled by the remount below.
+        if (gl.isContextLost()) return;
+        console.warn("[scene] shader failed on this GPU, using the 2D renderer:", gl.getShaderInfoLog(vs) || gl.getShaderInfoLog(fs));
+        setDead(true);
+      };
       canvas.addEventListener(
         "webglcontextlost",
         (e) => {
           e.preventDefault();
           losses.current += 1;
           noteContextLoss();
-          // Remount a fresh canvas shortly after (a few times at most).
-          if (losses.current <= 2) window.setTimeout(() => setGeneration((g) => g + 1), 900);
-          else setDead(true);
+          // Remount a fresh canvas once the browser hands out contexts again
+          // (right after a loss / GPU reset it can refuse for a moment).
+          if (losses.current > 2) {
+            setDead(true);
+            return;
+          }
+          let tries = 0;
+          const attempt = () => {
+            if (contextAvailable()) setGeneration((g) => g + 1);
+            else if (++tries < 8) window.setTimeout(attempt, 600 * tries);
+            else setDead(true);
+          };
+          window.setTimeout(attempt, 900);
         },
         { once: true },
       );
@@ -110,7 +152,7 @@ export default function SceneCanvas({ children, fallback, className = "", mountM
 
   return (
     <div ref={host} className={`relative h-full w-full ${className}`} data-scene={live ? "webgl" : "fallback"}>
-      <SceneBoundary key={generation} fallback={fallback} onError={() => setDead(true)}>
+      <SceneBoundary key={generation} fallback={fallback} onError={onSceneError}>
         {live && q ? (
           <Canvas
             key={generation}

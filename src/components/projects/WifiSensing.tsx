@@ -288,7 +288,7 @@ export default function WifiSensing() {
   };
 
   return (
-    <div className="relative grid h-full w-full lg:block">
+    <div className="relative grid w-full lg:block lg:h-[clamp(36rem,calc(var(--svh)*82),50rem)]">
       {/* 3D room (2D top view when WebGL is unavailable) */}
       <div
         ref={stage}
@@ -325,7 +325,7 @@ export default function WifiSensing() {
       {/* pipeline HUD */}
       <div className="relative z-10 border-t border-line bg-bg/85 backdrop-blur-md lg:absolute lg:bottom-3 lg:right-3 lg:top-3 lg:w-[23rem] lg:rounded-2xl lg:border lg:border-white/10 xl:w-[26rem]">
         <div className="flex items-center justify-between gap-2 px-3.5 pt-3">
-          <p className="label !text-[0.58rem] !text-ink">Wi-Fi → CSI → features → model → estimate</p>
+          <p className="label min-w-0 !text-[0.58rem] !tracking-[0.1em] !text-ink">Wi-Fi → CSI → features → model → estimate</p>
         </div>
         <div className="h-[22rem] w-full sm:h-[17rem] lg:h-[calc(100%-2rem)]">
           <Pipeline sim={sim} />

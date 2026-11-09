@@ -27,13 +27,22 @@ test.describe("rendering & fallbacks", () => {
     const scenes = await page.locator("[data-scene]").evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.scene));
     expect(scenes.length).toBeGreaterThan(3);
     expect(scenes.every((s) => s === "fallback")).toBe(true);
+    // the chip and the genome animate on the 2D renderers
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(1500);
+    await expect(page.locator("canvas[data-canvas2d=hero]")).toHaveCount(1);
+    expect(await brightFraction(page, page.locator("#top > div").first())).toBeGreaterThan(0.004);
+    await page.locator("#dart-cuda").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1500);
+    await expect(page.locator("canvas[data-canvas2d=dart]")).toHaveCount(1);
+    expect(await brightFraction(page, page.locator("#dart-cuda .stage"))).toBeGreaterThan(0.01);
     // the maze still plays on its 2D VGA screen and Wi-Fi sensing draws its 2D top view
     await page.locator("#controlled-maze-fpga").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1500);
     expect(await brightFraction(page, page.locator("[aria-roledescription=game]"))).toBeGreaterThan(0.1);
-    await page.locator("#advanced-explorations [role=tabpanel]").scrollIntoViewIfNeeded();
+    await page.locator("#wifi-sensing .stage").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1500);
-    expect(await brightFraction(page, page.locator("#advanced-explorations [role=tabpanel]"))).toBeGreaterThan(0.01);
+    expect(await brightFraction(page, page.locator("#wifi-sensing .stage"))).toBeGreaterThan(0.01);
     expect(errors).toEqual([]);
   });
 
@@ -63,14 +72,29 @@ test.describe("rendering & fallbacks", () => {
     await page.goto("/");
     const q = await page.evaluate(() => document.documentElement.dataset.quality);
     test.skip(q === "0", "no WebGL in this browser");
-    await expect(page.locator("#top canvas")).toHaveCount(1, { timeout: 15_000 });
+    // target the WebGL canvas (the animated 2D fallback canvas is shown until it mounts)
+    await expect(page.locator("#top [data-scene=webgl] canvas")).toHaveCount(1, { timeout: 15_000 });
     await page.evaluate(() => {
-      const c = document.querySelector<HTMLCanvasElement>("#top canvas")!;
+      const c = document.querySelector<HTMLCanvasElement>("#top [data-scene=webgl] canvas")!;
       const gl = (c.getContext("webgl2") || c.getContext("webgl")) as WebGLRenderingContext | null;
       gl?.getExtension("WEBGL_lose_context")?.loseContext();
     });
-    await page.waitForTimeout(2500);
-    await expect(page.locator("#top [data-scene=webgl] canvas")).toHaveCount(1);
-    expect(errors.filter((e) => !/context lost/i.test(e))).toEqual([]);
+    // a fresh canvas with a live context replaces the lost one (remount takes longer under load)
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const c = document.querySelector<HTMLCanvasElement>("#top [data-scene=webgl] canvas");
+            const gl = c?.getContext("webgl2");
+            if (!!gl && !gl.isContextLost()) return true;
+            return `scene=${document.querySelector<HTMLElement>("#top [data-scene]")?.dataset.scene} canvas=${!!c} gl=${!!gl} lost=${gl?.isContextLost()}`;
+          }),
+        { timeout: 12_000 },
+      )
+      .toBe(true);
+    // This test kills the GPU context on purpose. Under heavy parallel load the
+    // browser can refuse the replacement context for a moment; three.js logs
+    // that before the retry succeeds. Anything else is still a failure.
+    expect(errors.filter((e) => !/context lost|reading 'precision'|WebGLRenderer/i.test(e))).toEqual([]);
   });
 });

@@ -2,7 +2,7 @@
  * Technical universe graph. Nodes are topics, not skill ratings: no levels,
  * no certificates. `projects` lists the project slugs where the topic appears.
  */
-export type SkillGroup = "compute" | "hardware" | "software" | "robotics";
+export type SkillGroup = "compute" | "hardware" | "software" | "robotics" | "people";
 
 export interface SkillNode {
   id: string;
@@ -28,8 +28,10 @@ export const skillNodes: SkillNode[] = [
   { id: "sv", label: "SystemVerilog", group: "hardware", blurb: "Describing hardware that runs on an FPGA.", projects: ["controlled-maze-fpga"], d: [89, 28], m: [12, 74] },
   { id: "fpga", label: "FPGA", group: "hardware", blurb: "Cyclone V board, VGA output and PS/2 input.", projects: ["controlled-maze-fpga"], d: [86, 51], m: [48, 82] },
   { id: "ros2", label: "ROS 2", group: "robotics", blurb: "The middleware that connects perception, planning and the arm.", projects: ["physical-ai-robot-arm"], d: [73, 17], m: [48, 24] },
-  { id: "robotics", label: "Robotics", group: "robotics", blurb: "Arms, grippers and household robotics explorations.", projects: ["physical-ai-robot-arm", "advanced-explorations"], d: [89, 9], m: [48, 37] },
-  { id: "ai", label: "AI", group: "robotics", blurb: "Perception and learning where they meet the physical world.", projects: ["physical-ai-robot-arm", "advanced-explorations"], d: [66, 53], m: [50, 44] },
+  { id: "robotics", label: "Robotics", group: "robotics", blurb: "Robot arms, grippers and perception-driven manipulation.", projects: ["physical-ai-robot-arm"], d: [89, 9], m: [48, 37] },
+  { id: "ai", label: "AI", group: "robotics", blurb: "Perception and learning where they meet the physical world.", projects: ["physical-ai-robot-arm", "wifi-sensing"], d: [66, 53], m: [50, 44] },
+  { id: "esp32", label: "ESP32 & Wi-Fi CSI", group: "hardware", blurb: "Cheap radios as sensors: channel state information as a signal.", projects: ["wifi-sensing"], d: [52, 18], m: [30, 64] },
+  { id: "innovation", label: "Innovation & Leadership", group: "people", blurb: "Founding and running a military innovation accelerator: from a field need to an MVP.", projects: ["navy-reef"], d: [36, 6], m: [30, 84] },
 ];
 
 /** Edges between topics. */
@@ -51,6 +53,9 @@ export const skillEdges: [string, string][] = [
   ["robotics", "ai"],
   ["software", "ai"],
   ["perf", "software"],
+  ["esp32", "ai"],
+  ["esp32", "digital"],
+  ["innovation", "software"],
 ];
 
 export const groupColor: Record<SkillGroup, string> = {
@@ -58,6 +63,7 @@ export const groupColor: Record<SkillGroup, string> = {
   hardware: "#7dff9a",
   software: "#e4d9ff",
   robotics: "#ff8a3d",
+  people: "#ffcf5a",
 };
 
 export const groupLabel: Record<SkillGroup, string> = {
@@ -65,4 +71,5 @@ export const groupLabel: Record<SkillGroup, string> = {
   hardware: "Hardware",
   software: "Software",
   robotics: "Robotics & AI",
+  people: "Innovation & leadership",
 };

@@ -12,7 +12,8 @@ const layouts: Record<ProjectKind, ShellLayout> = {
   planner: "left",
   maze: "stack",
   arm: "right",
-  explorations: "stack",
+  reef: "left",
+  wifi: "stack",
 };
 
 export default function Projects() {
@@ -31,11 +32,11 @@ export default function Projects() {
             </h2>
           </div>
           <Reveal as="p" className="max-w-md text-mute lg:ml-auto">
-            Four pieces of work and a set of future projects, each with its own small machine to play with. Ongoing and exploratory work is labeled as such, every demo says what it is, and real projects link to their code or live site.
+            Four engineering projects, the Navy innovation accelerator I founded, and a future project, each with its own small machine to play with. Ongoing and exploratory work is labeled as such, every demo says what it is, and real projects link to their code or live site.
           </Reveal>
         </div>
 
-        <Reveal as="ol" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 sm:[&>li:last-child]:col-span-2 lg:grid-cols-3 lg:[&>li:last-child]:col-span-1 lg:[&>li:nth-child(4)]:col-span-2 xl:grid-cols-5 xl:[&>li:nth-child(4)]:col-span-1 md:mt-16">
+        <Reveal as="ol" className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 md:mt-16">
           {projects.map((p) => (
             <li key={p.slug} className="bg-bg">
               <button
